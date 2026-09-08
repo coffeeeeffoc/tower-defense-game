@@ -95,7 +95,7 @@ export default function GameSprite({
         viewBox={`${x} ${y} ${w} ${h}`}
         overflow="hidden"
       >
-        <image href={`/${sheet}-v2.png`} width="1448" height="1086" />
+        <image href={`./${sheet}-v2.png`} width="1448" height="1086" />
       </svg>
     </svg>
   );
