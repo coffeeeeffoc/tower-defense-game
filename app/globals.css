@@ -534,132 +534,7 @@ button svg {
   overflow-y: auto;
   scrollbar-width: thin;
 }
-.eyebrow {
-  font-size: 10px;
-  letter-spacing: 1.5px;
-  color: #a8bd8a;
-}
-.deck-heading h1 {
-  font-family: 'STKaiti', 'KaiTi', 'Microsoft YaHei', serif;
-  font-weight: 500;
-  font-size: 36px;
-  line-height: 1.4;
-  letter-spacing: 3px;
-  margin: 14px 0 10px;
-}
-.deck-heading em {
-  font-style: normal;
-  color: #d3eaaa;
-}
-.deck-heading p {
-  color: #adbc9f;
-  font-size: 13px;
-  line-height: 1.8;
-  margin: 0 0 8px;
-}
-.deck-label {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  min-height: 24px;
-  color: #dce5cc;
-  font-size: 14px;
-}
-.deck-label > span + span {
-  font-size: 12px;
-  color: #a0b190;
-}
-.deck-label .icon-button {
-  height: 28px;
-  width: 32px;
-  min-width: 32px;
-  margin: -2px 0;
-}
-.tower-cards {
-  display: grid;
-  gap: 9px;
-}
-.tower-card {
-  position: relative;
-  display: grid;
-  grid-template-columns: 62px 1fr;
-  align-items: center;
-  column-gap: 9px;
-  text-align: left;
-  padding: 8px;
-  border: 1px solid #d7e6b921;
-  border-radius: 12px;
-  background: #182d22;
-  color: #e2eacf;
-  min-height: 83px;
-}
-.tower-card.active {
-  border-color: #cbeba1;
-  background: #bddc8f0d;
-  box-shadow: inset 0 0 0 1px #ceeaa123;
-}
-.tower-card > .game-sprite {
-  width: 68px;
-  height: 70px;
-  grid-row: 1 / 3;
-  margin-top: -5px;
-}
-.tower-card b {
-  font-size: 14px;
-  font-weight: 500;
-  display: block;
-}
-.tower-card small {
-  font-size: 11px;
-  color: #9caf93;
-  display: block;
-  margin-top: 5px;
-  white-space: nowrap;
-}
-.price {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  color: #f1d894;
-  font-size: 13px;
-  grid-column: 2;
-}
-.card-check {
-  position: absolute;
-  right: 8px;
-  top: 8px;
-  color: #d0eaa3;
-}
-.tactical-note {
-  margin-top: auto;
-  font-size: 12px;
-  color: #aebd9f;
-  line-height: 1.7;
-  border-top: 1px solid var(--border);
-  padding-top: 14px;
-}
-.tactical-note > span {
-  display: block;
-  font-size: 13px;
-  color: #d4e0c4;
-  margin-bottom: 7px;
-}
-.tactical-note > div {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 7px;
-}
-.tactical-note b {
-  font-size: 11px;
-  font-weight: normal;
-  background: #14291fb0;
-  padding: 3px 5px;
-  border-radius: 4px;
-}
-.tactical-note p {
-  margin: 7px 0 0;
-  font-size: 12px;
-}
+
 .arrow {
   --weapon: #c2ee96;
 }
@@ -669,15 +544,7 @@ button svg {
 .ember {
   --weapon: #ffc08a;
 }
-.tactical-note .arrow {
-  color: #c2ee96;
-}
-.tactical-note .frost {
-  color: #8fe6ff;
-}
-.tactical-note .ember {
-  color: #ffc08a;
-}
+
 .battle-actions {
   display: flex;
   gap: 7px;
@@ -744,57 +611,7 @@ button svg {
   flex-shrink: 0;
   margin-top: 2px;
 }
-.upgrade-panel {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 12px;
-  min-height: 267px;
-  position: relative;
-  padding-bottom: 40px;
-}
-.upgrade-panel > .game-sprite {
-  width: 140px;
-  height: 145px;
-  margin: auto;
-}
-.upgrade-panel > div {
-  width: calc(100% - 70px);
-}
-.upgrade-panel b {
-  display: block;
-  font-size: 16px;
-}
-.upgrade-panel span,
-.upgrade-panel small {
-  display: block;
-  font-size: 12px;
-  line-height: 1.6;
-  color: #aabc9b;
-  margin-top: 4px;
-}
-.upgrade {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 3px;
-  min-width: 56px;
-  min-height: 44px;
-  border: 1px solid #c3dfa083;
-  background: #bad88a16;
-  color: #e1f0be;
-  border-radius: 9px;
-}
-.sell {
-  position: absolute;
-  bottom: 0;
-  right: 0;
-  min-height: 36px;
-  border: 0;
-  background: transparent;
-  color: #bbc8aa;
-  font-size: 12px;
-}
+
 .game-overlay {
   position: absolute;
   inset: 44px 0 0;
@@ -872,9 +689,7 @@ button svg {
   border-radius: 0;
   border: 0;
 }
-.expanded .deck-heading {
-  display: none;
-}
+
 @media (min-width: 1100px) and (min-height: 850px) {
   .control-deck {
     padding: 32px 24px 20px;
@@ -883,45 +698,11 @@ button svg {
   .game-console {
     grid-template-columns: minmax(0, 1fr) 340px;
   }
-  .tower-card {
-    min-height: 100px;
-  }
-  .tower-card > .game-sprite {
-    width: 80px;
-    height: 85px;
-  }
-  .tower-card {
-    grid-template-columns: 80px 1fr;
-  }
-  .deck-heading h1 {
-    font-size: 42px;
-  }
 }
 @media (max-height: 760px) {
-  .deck-heading h1 {
-    font-size: 28px;
-  }
-  .deck-heading p {
-    display: none;
-  }
   .control-deck {
     gap: 10px;
     padding: 15px;
-  }
-  .tactical-note {
-    padding-top: 10px;
-  }
-  .tactical-note p {
-    display: none;
-  }
-  .tower-card {
-    min-height: 74px;
-  }
-  .tower-card > .game-sprite {
-    height: 61px;
-  }
-  .upgrade-panel {
-    min-height: 230px;
   }
 }
 @media (max-width: 700px) and (orientation: portrait) {
@@ -990,54 +771,7 @@ button svg {
     gap: 7px;
     overflow: visible;
   }
-  .deck-heading,
-  .tactical-note {
-    display: none;
-  }
-  .deck-label {
-    font-size: 13px;
-    min-height: 22px;
-  }
-  .tower-cards {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 7px;
-  }
-  .tower-card {
-    display: grid;
-    grid-template-columns: 42px 1fr;
-    gap: 0 3px;
-    min-height: 83px;
-    padding: 5px;
-    text-align: center;
-  }
-  .tower-card > .game-sprite {
-    width: 49px;
-    height: 56px;
-    grid-column: 1;
-    grid-row: 1 / 3;
-    margin: 0 0 0 -3px;
-  }
-  .tower-card > div {
-    grid-column: 2;
-    grid-row: 1;
-  }
-  .tower-card b {
-    font-size: 12px;
-    line-height: 1.3;
-  }
-  .tower-card small {
-    display: none;
-  }
-  .price {
-    grid-row: 2;
-    justify-content: center;
-    font-size: 12px;
-  }
-  .card-check {
-    top: 3px;
-    right: 3px;
-    width: 10px;
-  }
+
   .battle-actions {
     min-height: 45px;
   }
@@ -1073,42 +807,7 @@ button svg {
     min-width: 40px;
     font-size: 11px;
   }
-  .upgrade-panel {
-    min-height: 83px;
-    padding: 0 0 18px;
-    gap: 6px;
-    flex-wrap: nowrap;
-  }
-  .upgrade-panel > .game-sprite {
-    width: 68px;
-    height: 65px;
-    flex-shrink: 0;
-    margin: 0;
-  }
-  .upgrade-panel > div {
-    width: auto;
-    flex: 1;
-  }
-  .upgrade-panel b {
-    font-size: 13px;
-  }
-  .upgrade-panel span {
-    font-size: 11px;
-    margin: 0;
-  }
-  .upgrade-panel small {
-    display: none;
-  }
-  .upgrade {
-    font-size: 13px;
-    min-width: 55px;
-    min-height: 40px;
-  }
-  .sell {
-    bottom: -5px;
-    min-height: 25px;
-    font-size: 11px;
-  }
+
   .game-overlay h2 {
     font-size: 23px;
   }
@@ -1123,23 +822,13 @@ button svg {
   }
 }
 @media (max-width: 370px) and (orientation: portrait) {
-  .tower-card {
-    grid-template-columns: 1fr 1fr;
-    padding: 4px;
-  }
-  .tower-card > .game-sprite {
-    width: 44px;
-    height: 51px;
-  }
   .brand small {
     font-size: 10px;
   }
   .hud b {
     font-size: 18px;
   }
-  .tower-card b {
-    font-size: 12px;
-  }
+
   .hint {
     font-size: 11px;
   }
@@ -1190,36 +879,7 @@ button svg {
     padding: 9px;
     gap: 7px;
   }
-  .deck-heading,
-  .tactical-note {
-    display: none;
-  }
-  .deck-label {
-    font-size: 12px;
-  }
-  .tower-card {
-    min-height: 57px;
-    grid-template-columns: 48px 1fr;
-    padding: 3px 7px;
-    gap: 0 8px;
-  }
-  .tower-card > .game-sprite {
-    width: 54px;
-    height: 53px;
-    margin-top: 0;
-  }
-  .tower-card small {
-    display: none;
-  }
-  .tower-card b {
-    font-size: 12px;
-  }
-  .price {
-    font-size: 12px;
-  }
-  .tower-cards {
-    gap: 5px;
-  }
+
   .battle-actions {
     min-height: 43px;
     margin-top: auto;
@@ -1239,24 +899,7 @@ button svg {
     min-height: 28px;
     line-height: 1.4;
   }
-  .upgrade-panel {
-    min-height: 180px;
-    gap: 4px;
-    padding-bottom: 26px;
-  }
-  .upgrade-panel > .game-sprite {
-    height: 95px;
-    width: 100px;
-  }
-  .upgrade-panel > div {
-    width: calc(100% - 60px);
-  }
-  .upgrade-panel b {
-    font-size: 13px;
-  }
-  .upgrade-panel small {
-    display: none;
-  }
+
   .game-overlay {
     gap: 10px;
     padding: 14px;
@@ -1289,5 +932,675 @@ button svg {
   }
   .projectiles text {
     font-size: 17px;
+  }
+}
+/* The same grade art is used in the shop, hall, battlefield and drag preview. */
+.guard-art {
+  display: block;
+  width: 100%;
+  height: 100%;
+  position: relative;
+  pointer-events: none;
+  transform: scale(var(--rank-scale));
+  transform-origin: 50% 90%;
+  isolation: isolate;
+}
+.guard-art > .game-sprite {
+  position: relative;
+  z-index: 1;
+}
+.rank-emblem {
+  position: absolute;
+  bottom: 22%;
+  left: 39%;
+  width: 22%;
+  height: 22%;
+  color: #d8e2e0;
+  filter: drop-shadow(0 1px 1px #000);
+  z-index: 2;
+}
+.guard-art[data-level='2'] > .game-sprite {
+  filter: brightness(1.08) saturate(1.12) drop-shadow(0 2px 1px #c7e2eb45);
+}
+.guard-art[data-level='3'] > .game-sprite {
+  filter: brightness(1.12) saturate(1.2) drop-shadow(0 0 4px var(--weapon));
+}
+.guard-art[data-level='3'] .rank-emblem {
+  color: #b6f9e1;
+}
+.guard-art[data-level='4'] > .game-sprite {
+  filter: brightness(1.16) saturate(1.15) drop-shadow(0 0 5px #ffda83);
+}
+.guard-art[data-level='4'] .rank-emblem {
+  color: #ffdd79;
+  width: 26%;
+  left: 37%;
+  bottom: 25%;
+}
+.guard-art[data-level='4']:before {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 17%;
+  right: 17%;
+  height: 19%;
+  border: 2px solid #ffdc8099;
+  border-radius: 50%;
+  box-shadow: 0 0 12px #ffcf5855;
+  z-index: 0;
+}
+.level {
+  height: 19px;
+  min-width: 35px;
+  font-size: 15px;
+  line-height: 16px;
+  letter-spacing: 0;
+  top: 45px;
+  padding: 0 5px;
+  font-weight: bold;
+}
+.level[data-level='2'],
+.bench-level[data-level='2'] {
+  color: #d9f0f7;
+  border-color: #a4cdd2;
+}
+.level[data-level='3'],
+.bench-level[data-level='3'] {
+  color: #b4ffe5;
+  border-color: #63bdac;
+}
+.level[data-level='4'],
+.bench-level[data-level='4'] {
+  color: #ffe1a0;
+  border-color: #ecc367;
+  background: #493b20;
+}
+.plot.built,
+.bench-slot:not(.empty) {
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.plot.merge-ready:before {
+  border: 2px solid #e3bfff;
+  background: #80648755;
+  box-shadow: 0 0 0 5px #d6a9fb22;
+}
+.plot.drop-valid:before,
+.bench-slot.drop-valid {
+  outline: 3px solid #dbffc0;
+  outline-offset: 3px;
+  box-shadow: 0 0 20px #cfffad88;
+}
+.plot.drop-invalid:before,
+.bench-slot.drop-invalid {
+  outline: 2px solid #fa9e8f;
+  outline-offset: 3px;
+}
+.merge-pop .guard-art {
+  animation: merge-pop 0.65s ease-out;
+}
+@keyframes merge-pop {
+  0% {
+    filter: brightness(2.5);
+    transform: scale(0.85);
+  }
+  40% {
+    filter: brightness(1.4);
+    transform: scale(calc(var(--rank-scale) + 0.2));
+  }
+  100% {
+    filter: brightness(1);
+    transform: scale(var(--rank-scale));
+  }
+}
+.drag-ghost {
+  position: fixed;
+  width: 92px;
+  height: 98px;
+  transform: translate(-50%, -78%);
+  pointer-events: none;
+  z-index: 99999;
+  filter: drop-shadow(0 12px 10px #0007);
+}
+.drag-ghost b {
+  display: block;
+  position: absolute;
+  bottom: -5px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 2px 7px;
+  border-radius: 7px;
+  background: #d7edb7;
+  color: #27452a;
+  font-size: 13px;
+  white-space: nowrap;
+}
+.control-deck.camp-deck {
+  padding: 20px 14px 12px;
+  gap: 18px;
+}
+.camp-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  min-height: 35px;
+  gap: 5px;
+  margin-bottom: 10px;
+}
+.camp-heading h2 {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  margin: 0;
+  color: #e5edd7;
+  white-space: nowrap;
+}
+.camp-heading h2 small {
+  font-size: 12px;
+  color: #adc69c;
+  margin-left: 2px;
+}
+.camp-heading > span {
+  font-size: 10px;
+  color: #adc09c;
+}
+.refresh-shop {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 36px;
+  border: 1px solid #d0dfaf50;
+  border-radius: 8px;
+  padding: 0 7px;
+  background: #b4d78114;
+  color: #d7e8b9;
+  font-size: 12px;
+}
+.shop-offers {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 7px;
+}
+.shop-offer,
+.offer-sold {
+  min-height: 133px;
+  position: relative;
+  border: 1px solid #d4e1b527;
+  border-radius: 10px;
+  background: #14291fb0;
+  color: #e5ebd7;
+  padding: 5px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-width: 0;
+}
+.shop-offer:not(:disabled):hover {
+  background: #bddd8b17;
+  box-shadow: 0 0 0 1px #c9dfaa44;
+}
+.shop-offer > .guard-art {
+  height: 78px;
+  max-width: 80px;
+}
+.shop-offer > b {
+  font-weight: 500;
+  font-size: 12px;
+  white-space: nowrap;
+}
+.offer-price {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  color: #f1d98f;
+  font-size: 13px;
+}
+.offer-price small {
+  font-size: 10px;
+  color: #a7b79b;
+  margin-left: 2px;
+}
+.offer-sold {
+  color: #829777;
+  background: #10251b77;
+  border-style: dashed;
+  font-size: 12px;
+  gap: 12px;
+}
+.guard-hall {
+  border-top: 1px solid var(--border);
+  padding-top: 10px;
+}
+.bench-slots {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+.bench-slot {
+  min-width: 0;
+  height: 91px;
+  position: relative;
+  display: grid;
+  place-items: center;
+  padding: 3px 5px 13px;
+  border: 1px solid #b4cea23d;
+  border-radius: 10px;
+  background: #13281e;
+  color: #b5c9a3;
+}
+.bench-slot > .guard-art {
+  height: 78px;
+  width: 80px;
+  max-width: 100%;
+  margin-top: -8px;
+}
+.bench-slot.empty {
+  border-style: dashed;
+  background: #243c2b55;
+  color: #809b72;
+}
+.bench-slot.empty small {
+  position: absolute;
+  bottom: 6px;
+  font-size: 11px;
+  opacity: 0.7;
+}
+.bench-slot.selected {
+  border-color: #d6efb2;
+  background: #91b96d30;
+  box-shadow: inset 0 0 0 1px #e0f3bc60;
+}
+.bench-slot.merge-ready {
+  border: 2px solid #d8b9f0;
+  background: #8b62a226;
+}
+.bench-level {
+  position: absolute;
+  bottom: 3px;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 1px solid #b4c79760;
+  border-radius: 6px;
+  background: #233824;
+  color: #e1eac5;
+  padding: 1px 5px;
+  line-height: 14px;
+  font-size: 11px;
+  white-space: nowrap;
+}
+.selection-bar {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 72px;
+  flex-wrap: wrap;
+  border-top: 1px solid var(--border);
+  padding-top: 10px;
+  color: #d8e5c3;
+}
+.selection-bar > div {
+  flex: 1;
+  min-width: 160px;
+}
+.selection-bar b {
+  font-size: 13px;
+  font-weight: 500;
+  display: block;
+}
+.selection-bar span {
+  display: block;
+  font-size: 11px;
+  color: #aabc99;
+  margin-top: 4px;
+}
+.selection-bar p {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.8;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-wrap: wrap;
+}
+.selection-bar p small {
+  display: block;
+  font-size: 11px;
+  color: #a8bd95;
+  width: 100%;
+  padding-left: 24px;
+}
+.merge-button,
+.sell-unit {
+  border: 1px solid #bcd79660;
+  border-radius: 7px;
+  background: #a8ce7420;
+  color: #e0edbe;
+  min-height: 36px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 8px;
+  font-size: 12px;
+}
+.sell-unit {
+  background: transparent;
+  color: #d8cea3;
+  border-color: #d9c48d44;
+}
+.clear-choice {
+  min-width: 30px;
+  min-height: 36px;
+  display: grid;
+  place-items: center;
+  background: none;
+  border: 0;
+  color: #a8bc92;
+  margin-left: auto;
+}
+.camp-deck .battle-actions {
+  margin-top: auto;
+}
+.camp-deck .hint {
+  font-size: 11px;
+  min-height: 32px;
+}
+@media (min-width: 1100px) and (min-height: 850px) {
+  .control-deck.camp-deck {
+    padding: 28px 22px 18px;
+    gap: 22px;
+  }
+  .shop-offer,
+  .offer-sold {
+    min-height: 151px;
+  }
+  .shop-offer > .guard-art {
+    height: 95px;
+    max-width: 96px;
+  }
+  .bench-slot {
+    height: 108px;
+  }
+  .bench-slot > .guard-art {
+    height: 94px;
+    width: 96px;
+  }
+  .camp-heading h2 {
+    font-size: 16px;
+  }
+}
+@media (max-width: 700px) and (orientation: portrait) {
+  .control-deck.camp-deck {
+    padding: 6px 9px;
+    gap: 6px;
+  }
+  .camp-heading {
+    min-height: 29px;
+    margin-bottom: 4px;
+  }
+  .camp-heading h2 {
+    font-size: 13px;
+  }
+  .camp-heading h2 svg {
+    width: 15px;
+  }
+  .camp-heading > span {
+    font-size: 10px;
+  }
+  .refresh-shop {
+    min-height: 29px;
+    font-size: 11px;
+  }
+  .shop-offer,
+  .offer-sold {
+    min-height: 65px;
+    padding: 3px;
+    gap: 2px;
+    display: grid;
+    grid-template-columns: 42px 1fr;
+    grid-template-rows: 1fr 1fr;
+  }
+  .shop-offer > .guard-art {
+    height: 59px;
+    width: 52px;
+    grid-row: 1/3;
+    grid-column: 1;
+    margin: -5px 0 0 -5px;
+  }
+  .shop-offer > b {
+    font-size: 12px;
+    grid-column: 2;
+    align-self: end;
+  }
+  .offer-price {
+    font-size: 12px;
+    grid-column: 2;
+    align-self: start;
+    justify-content: center;
+  }
+  .offer-price small {
+    font-size: 9px;
+  }
+  .offer-sold {
+    display: flex;
+    min-height: 65px;
+    gap: 5px;
+  }
+  .offer-sold svg {
+    width: 18px;
+  }
+  .guard-hall {
+    padding-top: 3px;
+  }
+  .bench-slots {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 5px;
+  }
+  .bench-slot {
+    height: 61px;
+    padding: 0 1px 8px;
+    border-radius: 8px;
+  }
+  .bench-slot > .guard-art {
+    height: 59px;
+    width: 60px;
+    max-width: 115%;
+    margin-top: -3px;
+  }
+  .bench-level {
+    font-size: 10px;
+    padding: 0 3px;
+    bottom: 1px;
+    line-height: 13px;
+  }
+  .bench-slot.empty small {
+    bottom: 3px;
+  }
+  .selection-bar {
+    min-height: 39px;
+    padding-top: 4px;
+    flex-wrap: nowrap;
+    gap: 4px;
+  }
+  .selection-bar > div {
+    min-width: 0;
+    flex: 1;
+  }
+  .selection-bar b {
+    font-size: 11px;
+  }
+  .selection-bar span {
+    font-size: 10px;
+    margin-top: 1px;
+  }
+  .selection-bar p {
+    font-size: 11px;
+    gap: 5px;
+    line-height: 1.3;
+  }
+  .selection-bar p small {
+    font-size: 10px;
+    padding-left: 0;
+    width: auto;
+  }
+  .merge-button,
+  .sell-unit {
+    font-size: 11px;
+    padding: 0 5px;
+    min-height: 31px;
+    white-space: nowrap;
+  }
+  .clear-choice {
+    min-height: 31px;
+    min-width: 24px;
+  }
+  .camp-deck .hint {
+    min-height: 24px;
+    font-size: 10px;
+    line-height: 1.3;
+  }
+  .camp-deck .battle-actions {
+    min-height: 43px;
+    margin-top: 0;
+  }
+  .camp-deck .primary {
+    min-height: 43px;
+  }
+}
+@media (max-width: 350px) and (orientation: portrait) {
+  .shop-offer {
+    grid-template-columns: 34px 1fr;
+  }
+  .shop-offer > .guard-art {
+    width: 44px;
+    height: 52px;
+  }
+  .shop-offer > b {
+    font-size: 11px;
+  }
+  .offer-price small {
+    display: none;
+  }
+  .bench-level {
+    font-size: 9px;
+  }
+  .selection-bar p small {
+    display: none;
+  }
+  .merge-button svg {
+    display: none;
+  }
+}
+@media (orientation: landscape) and (max-height: 600px) {
+  .control-deck.camp-deck {
+    padding: 7px;
+    gap: 7px;
+  }
+  .camp-heading {
+    margin-bottom: 4px;
+    min-height: 27px;
+  }
+  .camp-heading h2 {
+    font-size: 12px;
+  }
+  .camp-heading > span {
+    font-size: 9px;
+  }
+  .refresh-shop {
+    font-size: 10px;
+    min-height: 27px;
+    padding: 0 4px;
+    gap: 2px;
+  }
+  .refresh-shop > svg {
+    width: 11px;
+  }
+  .shop-offer,
+  .offer-sold {
+    min-height: 75px;
+    padding: 3px;
+    gap: 1px;
+  }
+  .shop-offer > .guard-art {
+    height: 43px;
+    width: 48px;
+  }
+  .shop-offer > b {
+    font-size: 10px;
+  }
+  .offer-price {
+    font-size: 10px;
+  }
+  .offer-price small {
+    font-size: 9px;
+  }
+  .guard-hall {
+    padding-top: 3px;
+  }
+  .bench-slots {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 3px;
+  }
+  .bench-slot {
+    height: 48px;
+    padding: 0;
+  }
+  .bench-slot > .guard-art {
+    height: 45px;
+    max-width: 120%;
+    margin-top: -3px;
+  }
+  .bench-level {
+    font-size: 9px;
+    padding: 0 2px;
+    line-height: 11px;
+  }
+  .selection-bar {
+    min-height: 50px;
+    gap: 4px;
+    padding-top: 5px;
+  }
+  .selection-bar > div {
+    min-width: 110px;
+  }
+  .selection-bar b {
+    font-size: 11px;
+  }
+  .selection-bar span {
+    display: none;
+  }
+  .merge-button,
+  .sell-unit {
+    font-size: 10px;
+    min-height: 28px;
+    padding: 0 4px;
+  }
+  .merge-button svg {
+    display: none;
+  }
+  .clear-choice {
+    min-height: 24px;
+    min-width: 20px;
+  }
+  .selection-bar p {
+    font-size: 10px;
+    gap: 4px;
+  }
+  .selection-bar p small {
+    display: none;
+  }
+  .camp-deck .hint {
+    font-size: 10px;
+    min-height: 25px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .merge-pop .guard-art {
+    animation: none;
+    outline: 2px solid #fff0a3;
   }
 }

@@ -33,6 +33,18 @@ export const TYPES = {
   },
 };
 export const KINDS: TowerKind[] = ['arrow', 'frost', 'ember'];
+export const MAX_LEVEL = 4;
+export const BENCH_SIZE = 6;
+export const REFRESH_COST = 15;
+export const RANKS = ['新兵', '老练', '精锐', '传奇'];
+export type Guardian = {
+  id: number;
+  kind: TowerKind;
+  level: number;
+  spent: number;
+};
+export type Location = { zone: 'bench' | 'field'; slot: number };
+export type Offer = { id: number; kind: TowerKind; price: number };
 export const BOARD = { width: 480, height: 600 };
 export const PATH: Point[] = [
   [-28, 110],
@@ -122,12 +134,9 @@ export type Enemy = {
   fall: number;
   paid: boolean;
 };
-export type Tower = {
+export type Tower = Guardian & {
   slot: number;
-  kind: TowerKind;
-  level: number;
   cooldown: number;
-  spent: number;
   phase: 'idle' | 'aim' | 'recover';
   phaseTime: number;
   target: number | null;
@@ -161,6 +170,9 @@ export type Game = {
   paused: boolean;
   speed: number;
   towers: Tower[];
+  bench: (Guardian | null)[];
+  shop: (Offer | null)[];
+  shopSeed: number;
   enemies: Enemy[];
   shots: Shot[];
   impacts: Impact[];
@@ -173,13 +185,11 @@ export type Game = {
   shake: number;
   sounds: TowerKind[];
 };
-function makeTower(slot: number, kind: TowerKind): Tower {
+function makeTower(slot: number, unit: Guardian, cooldown = 0): Tower {
   return {
+    ...unit,
     slot,
-    kind,
-    level: 1,
-    cooldown: 0,
-    spent: TYPES[kind].cost,
+    cooldown,
     phase: 'idle',
     phaseTime: 0,
     target: null,
@@ -195,13 +205,27 @@ export function newGame(): Game {
     status: 'ready',
     paused: false,
     speed: 1,
-    towers: [makeTower(2, 'arrow')],
+    towers: [makeTower(2, { id: 0, kind: 'arrow', level: 1, spent: 60 })],
+    bench: [
+      { id: 1, kind: 'arrow', level: 1, spent: 60 },
+      { id: 2, kind: 'frost', level: 1, spent: 80 },
+      null,
+      null,
+      null,
+      null,
+    ],
+    shop: KINDS.map((kind, i) => ({
+      id: i + 3,
+      kind,
+      price: TYPES[kind].cost,
+    })),
+    shopSeed: 1729,
     enemies: [],
     shots: [],
     impacts: [],
     left: 0,
     spawn: 0,
-    nextId: 0,
+    nextId: 6,
     spell: 0,
     flash: 0,
     time: 0,
@@ -209,40 +233,132 @@ export function newGame(): Game {
     sounds: [],
   };
 }
-export function build(g: Game, slot: number, kind: TowerKind) {
+export function locate(
+  g: Game,
+  id: number,
+): { unit: Guardian; at: Location } | undefined {
+  const tower = g.towers.find((t) => t.id === id);
+  if (tower) return { unit: tower, at: { zone: 'field', slot: tower.slot } };
+  const slot = g.bench.findIndex((t) => t?.id === id);
+  return slot < 0
+    ? undefined
+    : { unit: g.bench[slot]!, at: { zone: 'bench', slot } };
+}
+export function unitAt(g: Game, to: Location): Guardian | null {
+  return to.zone === 'bench'
+    ? (g.bench[to.slot] ?? null)
+    : (g.towers.find((t) => t.slot === to.slot) ?? null);
+}
+export function canMerge(a: Guardian, b: Guardian) {
+  return (
+    a.id !== b.id &&
+    a.kind === b.kind &&
+    a.level === b.level &&
+    a.level < MAX_LEVEL
+  );
+}
+export function saleValue(unit: Guardian) {
+  return Math.max(1, Math.floor(unit.spent * 0.25));
+}
+export function buy(g: Game, offerId: number) {
+  const index = g.shop.findIndex((o) => o?.id === offerId),
+    offer = g.shop[index],
+    slot = g.bench.findIndex((u) => !u);
   if (
-    !Number.isInteger(slot) ||
-    !SLOTS[slot] ||
-    !Object.hasOwn(TYPES, kind) ||
-    g.towers.some((t) => t.slot === slot) ||
-    g.gold < TYPES[kind].cost ||
+    !offer ||
+    slot < 0 ||
+    g.gold < offer.price ||
     ['won', 'lost'].includes(g.status)
   )
     return false;
-  g.gold -= TYPES[kind].cost;
-  g.towers.push(makeTower(slot, kind));
+  g.gold -= offer.price;
+  g.bench[slot] = {
+    id: g.nextId++,
+    kind: offer.kind,
+    level: 1,
+    spent: offer.price,
+  };
+  g.shop[index] = null;
   return true;
 }
-export function upgrade(g: Game, slot: number) {
-  const t = g.towers.find((t) => t.slot === slot);
+export function refreshShop(g: Game) {
+  if (g.gold < REFRESH_COST || ['won', 'lost'].includes(g.status)) return false;
+  g.gold -= REFRESH_COST;
+  const old = g.shop;
+  // A tiny seeded generator makes shop changes reproducible in saves/tests.
+  g.shop = Array.from({ length: 3 }, () => {
+    g.shopSeed = (Math.imul(g.shopSeed, 1664525) + 1013904223) >>> 0;
+    const kind = KINDS[Math.floor((g.shopSeed / 4294967296) * 3)];
+    return { id: g.nextId++, kind, price: TYPES[kind].cost };
+  });
+  if (g.shop.every((o, i) => o?.kind === old[i]?.kind)) {
+    const kind = KINDS[(KINDS.indexOf(g.shop[0]!.kind) + 1) % 3];
+    g.shop[0] = { ...g.shop[0]!, kind, price: TYPES[kind].cost };
+  }
+  return true;
+}
+export function moveProblem(g: Game, id: number, to: Location): string | null {
+  if (['won', 'lost'].includes(g.status)) return '挑战已结束';
   if (
-    !t ||
-    t.level >= 3 ||
-    g.gold < t.level * 50 ||
-    ['won', 'lost'].includes(g.status)
+    !to ||
+    !['bench', 'field'].includes(to.zone) ||
+    !Number.isInteger(to.slot) ||
+    to.slot < 0 ||
+    to.slot >= (to.zone === 'bench' ? BENCH_SIZE : SLOTS.length)
   )
-    return false;
-  g.gold -= t.level * 50;
-  t.spent += t.level * 50;
-  t.level++;
+    return '请选择有效的空位';
+  const source = locate(g, id);
+  if (!source) return '这名守卫已不在原位';
+  const target = unitAt(g, to);
+  if (!target) return null;
+  if (target.id === id) return '已在这里';
+  if (target.kind !== source.unit.kind) return '只能合成同一种守卫';
+  if (target.level !== source.unit.level) return '两名守卫需要等级相同';
+  if (target.level >= MAX_LEVEL) return '已达 4 级上限';
+  return null;
+}
+function removeUnit(g: Game, id: number) {
+  const slot = g.bench.findIndex((u) => u?.id === id);
+  if (slot >= 0) g.bench[slot] = null;
+  g.towers = g.towers.filter((t) => t.id !== id);
+}
+export function moveGuardian(g: Game, id: number, to: Location) {
+  if (moveProblem(g, id, to)) return false;
+  const source = locate(g, id)!,
+    target = unitAt(g, to),
+    base = target ?? source.unit;
+  const unit: Guardian = {
+    id: base.id,
+    kind: base.kind,
+    level: base.level + (target ? 1 : 0),
+    spent: source.unit.spent + (target ? target.spent : 0),
+  };
+  const cooldown = Math.max(
+    'cooldown' in source.unit ? Number(source.unit.cooldown) : 0,
+    target && 'cooldown' in target ? Number(target.cooldown) : 0,
+  );
+  removeUnit(g, id);
+  if (target) removeUnit(g, target.id);
+  if (to.zone === 'bench') g.bench[to.slot] = unit;
+  else g.towers.push(makeTower(to.slot, unit, cooldown));
   return true;
 }
-export function sell(g: Game, slot: number) {
-  const t = g.towers.find((t) => t.slot === slot);
-  if (!t || ['won', 'lost'].includes(g.status)) return false;
-  g.gold += Math.floor(t.spent * 0.7);
-  g.towers = g.towers.filter((t) => t.slot !== slot);
+export function benchDestination(g: Game, id: number): Location | null {
+  const source = locate(g, id);
+  if (!source) return null;
+  let slot = g.bench.findIndex((u) => u && canMerge(source.unit, u));
+  if (slot < 0) slot = g.bench.findIndex((u) => !u);
+  return slot < 0 ? null : { zone: 'bench', slot };
+}
+export function sell(g: Game, id: number) {
+  const source = locate(g, id);
+  if (!source || ['won', 'lost'].includes(g.status)) return false;
+  g.gold += saleValue(source.unit);
+  removeUnit(g, id);
   return true;
+}
+export function towerDamage(kind: TowerKind, level: number) {
+  return TYPES[kind].damage * 2.1 ** (level - 1);
 }
 export function startWave(g: Game) {
   if (g.status !== 'ready' || g.wave >= 8) return false;
@@ -422,7 +538,7 @@ export function step(g: Game, dt: number) {
       target: target.id,
       elapsed: 0,
       duration: t.kind === 'ember' ? 0.75 : t.kind === 'frost' ? 0.6 : 0.4,
-      damage: spec.damage * (1 + (t.level - 1) * 0.65),
+      damage: towerDamage(t.kind, t.level),
     });
     t.phase = 'recover';
     t.phaseTime = 0;

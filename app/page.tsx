@@ -1,10 +1,18 @@
 'use client';
-import { useEffect, useRef, useState, type CSSProperties } from 'react';
+import {
+  useEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+  type PointerEvent as ReactPointerEvent,
+} from 'react';
 import { flushSync } from 'react-dom';
 import {
-  ArrowUp,
   ArrowRight,
-  Check,
+  RefreshCw,
+  ShoppingBag,
+  Warehouse,
+  Combine,
   CircleHelp,
   Coins,
   FastForward,
@@ -33,18 +41,30 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog';
-import GameSprite from '@/components/game-sprite';
+import GameSprite, { GuardSprite } from '@/components/game-sprite';
 import {
   TYPES,
-  KINDS,
   PATH,
   SLOTS,
   position,
   project,
   boardFit,
   newGame,
-  build,
-  upgrade,
+  buy,
+  refreshShop,
+  moveGuardian,
+  moveProblem,
+  locate,
+  unitAt,
+  canMerge,
+  benchDestination,
+  saleValue,
+  towerDamage,
+  MAX_LEVEL,
+  BENCH_SIZE,
+  REFRESH_COST,
+  RANKS,
+  type Location,
   sell,
   startWave,
   cast,
@@ -53,7 +73,6 @@ import {
   type TowerKind,
   type Point,
 } from '@/lib/game';
-const ROW = { arrow: 0, ember: 1, frost: 2 };
 const FEARS = { arrow: '怕扎', frost: '怕冷', ember: '怕炸' };
 const CRIES = {
   arrow: ['哎哟！', '别扎我！'],
@@ -64,13 +83,13 @@ export default function Home() {
   const live = useRef(newGame());
   const [game, setGame] = useState(live.current);
   const [selected, setSelected] = useState<number | null>(null);
-  const [kind, setKind] = useState<TowerKind>('arrow');
+
   const [help, setHelp] = useState(false);
   const [sound, setSound] = useState(false);
   const [zoom, setZoom] = useState(1);
   const [expanded, setExpanded] = useState(false);
   const [message, setMessage] = useState(
-    '先选空地，再安排守卫。每只哥布林都有弱点。',
+    '守卫厅已有援军：拖到战场，或拖向同种同级守卫合成。',
   );
   const viewport = useRef<HTMLDivElement>(null);
   const [view, setView] = useState({ width: 480, height: 600, wide: false });
@@ -137,8 +156,9 @@ export default function Home() {
     };
     frame = requestAnimationFrame(tick);
     const hide = () => {
-      if (document.hidden && live.current.status === 'battle') {
-        live.current.paused = true;
+      if (document.hidden) {
+        cancelDrag();
+        if (live.current.status === 'battle') live.current.paused = true;
         setGame({ ...live.current });
       }
     };
@@ -173,7 +193,10 @@ export default function Home() {
         position: p,
         occupied: live.current.towers.some((t) => t.slot === slot),
       })),
-      towers: live.current.towers.map(({ slot, kind, level, phase }) => ({
+      bench: live.current.bench,
+      shop: live.current.shop,
+      towers: live.current.towers.map(({ id, slot, kind, level, phase }) => ({
+        id,
         slot,
         kind,
         level,
@@ -212,13 +235,18 @@ export default function Home() {
     });
     register({
       name: 'command_defense',
-      description: `Build one tower at a zero-based slot (0–${SLOTS.length - 1}), or start the next wave. Uses visible game rules.`,
+      description:
+        'Buy a shop offer into the six-slot hall, refresh the shop for 15 gold, move or merge a guardian, sell one, or start a wave. Matching kind and level merge up to level 4.',
       inputSchema: {
         type: 'object',
         properties: {
-          action: { type: 'string', enum: ['build', 'start'] },
+          action: {
+            type: 'string',
+            enum: ['buy', 'refresh', 'move', 'sell', 'start'],
+          },
+          id: { type: 'integer' },
+          zone: { type: 'string', enum: ['bench', 'field'] },
           slot: { type: 'integer', minimum: 0, maximum: SLOTS.length - 1 },
-          kind: { type: 'string', enum: KINDS },
         },
         required: ['action'],
         additionalProperties: false,
@@ -228,46 +256,210 @@ export default function Home() {
         if (!input || typeof input !== 'object')
           throw new Error('Expected an object');
         const p = input as Record<string, unknown>;
-        if (Object.keys(p).some((k) => !['action', 'slot', 'kind'].includes(k)))
-          throw new Error('Unknown field');
-        let ok = false;
+        const fields: Record<string, string[]> = {
+          buy: ['action', 'id'],
+          refresh: ['action'],
+          move: ['action', 'id', 'zone', 'slot'],
+          sell: ['action', 'id'],
+          start: ['action'],
+        };
         if (
-          p.action === 'start' &&
-          p.slot === undefined &&
-          p.kind === undefined
+          typeof p.action !== 'string' ||
+          !Object.hasOwn(fields, p.action) ||
+          Object.keys(p).some((k) => !fields[p.action as string].includes(k))
         )
-          ok = startWave(live.current);
-        else if (
-          p.action === 'build' &&
-          typeof p.slot === 'number' &&
-          Number.isInteger(p.slot) &&
-          typeof p.kind === 'string' &&
-          Object.hasOwn(TYPES, p.kind)
-        )
-          ok = build(live.current, p.slot, p.kind as TowerKind);
-        else throw new Error('Invalid action, slot or kind');
-        if (!ok) throw new Error('Check gold, occupied slots or wave status');
+          throw new Error('Invalid action or fields');
+        let ok = false;
+        if (p.action === 'start') ok = startWave(live.current);
+        else if (p.action === 'refresh') ok = refreshShop(live.current);
+        else if (typeof p.id === 'number' && Number.isInteger(p.id)) {
+          if (p.action === 'buy') ok = buy(live.current, p.id);
+          else if (p.action === 'sell') ok = sell(live.current, p.id);
+          else if (
+            p.action === 'move' &&
+            (p.zone === 'bench' || p.zone === 'field') &&
+            typeof p.slot === 'number'
+          )
+            ok = moveGuardian(live.current, p.id, {
+              zone: p.zone,
+              slot: p.slot,
+            });
+        }
+        if (!ok)
+          throw new Error(
+            'Action unavailable: check gold, hall space, guardian IDs and matching levels',
+          );
         flushSync(() => setGame({ ...live.current }));
         return snapshot();
       },
     });
     return () => lifecycle.abort();
   }, []);
-  const tower = game.towers.find((t) => t.slot === selected),
-    ended = game.status === 'won' || game.status === 'lost';
+  const chosen = selected === null ? undefined : locate(game, selected);
+  const tower =
+    chosen?.at.zone === 'field'
+      ? game.towers.find((t) => t.id === selected)
+      : undefined;
+  const ended = game.status === 'won' || game.status === 'lost';
+  const [dragPreview, setDragPreview] = useState<{
+    id: number;
+    x: number;
+    y: number;
+  } | null>(null);
+  const [dropTarget, setDropTarget] = useState<Location | null>(null);
+  const [mergePulse, setMergePulse] = useState<number | null>(null);
+  const drag = useRef<{
+    id: number;
+    pointer: number;
+    x: number;
+    y: number;
+    active: boolean;
+  } | null>(null);
+  const suppressClick = useRef(0);
+  useEffect(() => {
+    if (mergePulse === null) return;
+    const timer = setTimeout(() => setMergePulse(null), 700);
+    return () => clearTimeout(timer);
+  }, [mergePulse]);
+  const kind = chosen?.unit.kind ?? 'arrow';
+  const rangeSlot =
+    dropTarget?.zone === 'field' ? dropTarget.slot : tower?.slot;
   const fit = boardFit(view.width, view.height, view.wide, zoom);
   const point = (p: Point) => project(p, view.wide);
   const enemyCount = game.left + game.enemies.filter((e) => e.hp > 0).length;
-  function place() {
-    if (selected === null) return;
-    if (build(live.current, selected, kind)) {
-      playSound(kind);
-      setMessage(`${TYPES[kind].name}就位！${TYPES[kind].detail}`);
-      setSelected(null);
+  function transfer(id: number, to: Location) {
+    const problem = moveProblem(live.current, id, to);
+    if (problem) {
+      setMessage(problem);
+      return;
+    }
+    const merging = !!unitAt(live.current, to);
+    if (moveGuardian(live.current, id, to)) {
+      const unit = unitAt(live.current, to)!;
+      setSelected(unit.id);
+      if (merging) {
+        setMergePulse(unit.id);
+        playSound(unit.kind);
+      }
+      setMessage(
+        merging
+          ? TYPES[unit.kind].name +
+              ' → ' +
+              unit.level +
+              ' 级' +
+              (unit.level === MAX_LEVEL ? ' · 已达顶级！' : '！')
+          : to.zone === 'bench'
+            ? '已回到守卫厅，可以观望或继续合成。'
+            : '守卫已部署。也可以拖回守卫厅待命。',
+      );
       sync();
-    } else setMessage('金币不足，击退来敌后再增援。');
+    }
   }
+  function clickPlace(to: Location) {
+    if (performance.now() < suppressClick.current) return;
+    const target = unitAt(live.current, to);
+    if (selected !== null && locate(live.current, selected)) {
+      if (target?.id === selected) {
+        setSelected(null);
+        return;
+      }
+      transfer(selected, to);
+    } else if (target) {
+      setSelected(target.id);
+      setMessage(
+        '已选中 ' +
+          TYPES[target.kind].name +
+          ' ' +
+          target.level +
+          ' 级：点空位移动，点同种同级合成。',
+      );
+    } else setMessage('先在商店购买，或选中守卫厅中的援军。');
+  }
+  function dropAt(x: number, y: number, id: number): Location | null {
+    const element = document
+      .elementFromPoint(x, y)
+      ?.closest<HTMLElement>('[data-drop-zone]');
+    if (!element) return null;
+    const zone = element.dataset.dropZone;
+    if (zone === 'bench-auto') return benchDestination(live.current, id);
+    const slot = Number(element.dataset.dropSlot);
+    return (zone === 'bench' || zone === 'field') && Number.isInteger(slot)
+      ? { zone, slot }
+      : null;
+  }
+  function cancelDrag() {
+    drag.current = null;
+    setDragPreview(null);
+    setDropTarget(null);
+  }
+  function dragProps(id: number) {
+    return {
+      onPointerDown: (e: ReactPointerEvent<HTMLButtonElement>) => {
+        if (!e.isPrimary || e.button !== 0 || ended) return;
+        suppressClick.current = 0;
+        drag.current = {
+          id,
+          pointer: e.pointerId,
+          x: e.clientX,
+          y: e.clientY,
+          active: false,
+        };
+        e.currentTarget.setPointerCapture(e.pointerId);
+      },
+      onPointerMove: (e: ReactPointerEvent<HTMLButtonElement>) => {
+        const d = drag.current;
+        if (!d || d.pointer !== e.pointerId) return;
+        if (!d.active && Math.hypot(e.clientX - d.x, e.clientY - d.y) < 8)
+          return;
+        d.active = true;
+        setDragPreview({ id: d.id, x: e.clientX, y: e.clientY });
+        setDropTarget(dropAt(e.clientX, e.clientY, d.id));
+      },
+      onPointerUp: (e: ReactPointerEvent<HTMLButtonElement>) => {
+        const d = drag.current;
+        if (!d || d.pointer !== e.pointerId) return;
+        if (d.active) {
+          suppressClick.current = performance.now() + 400;
+          const to = dropAt(e.clientX, e.clientY, d.id);
+          if (to) transfer(d.id, to);
+          else setMessage('未放入目标区域，守卫保留在原位。');
+        }
+        cancelDrag();
+        if (e.currentTarget.hasPointerCapture(e.pointerId))
+          e.currentTarget.releasePointerCapture(e.pointerId);
+      },
+      onPointerCancel: cancelDrag,
+      onLostPointerCapture: cancelDrag,
+    };
+  }
+  function targetClass(to: Location) {
+    const id = dragPreview?.id ?? selected;
+    if (id === null || id === undefined) return '';
+    const target = unitAt(game, to),
+      source = locate(game, id);
+    if (!source) return '';
+    const hover = dropTarget?.zone === to.zone && dropTarget.slot === to.slot;
+    return (
+      (target && canMerge(source.unit, target) ? ' merge-ready' : '') +
+      (hover
+        ? moveProblem(game, id, to)
+          ? ' drop-invalid'
+          : ' drop-valid'
+        : '')
+    );
+  }
+  function mergeSelected() {
+    if (!chosen) return;
+    const partner = [...game.bench, ...game.towers].find(
+      (u) => u && canMerge(u, chosen.unit),
+    );
+    if (partner) transfer(partner.id, chosen.at);
+  }
+  const partner = chosen
+    ? [...game.bench, ...game.towers].find((u) => u && canMerge(u, chosen.unit))
+    : undefined;
   function reset() {
+    cancelDrag();
     live.current = newGame();
     setSelected(null);
     setMessage('新的守护开始了。试试在转角交叉布防。');
@@ -432,10 +624,10 @@ export default function Home() {
                       strokeDasharray="2 17"
                       strokeWidth="2"
                     />
-                    {selected !== null && (
+                    {rangeSlot !== undefined && (
                       <circle
-                        cx={point(SLOTS[selected])[0]}
-                        cy={point(SLOTS[selected])[1]}
+                        cx={point(SLOTS[rangeSlot])[0]}
+                        cy={point(SLOTS[rangeSlot])[1]}
                         r={
                           TYPES[tower?.kind ?? kind].range +
                           (tower ? (tower.level - 1) * 14 : 0)
@@ -467,7 +659,7 @@ export default function Home() {
                     return (
                       <button
                         key={i}
-                        className={`plot ${t ? 'built ' + t.kind : ''} ${selected === i ? 'selected' : ''}`}
+                        className={`plot ${t ? 'built ' + t.kind : ''} ${selected === t?.id ? 'selected' : ''} ${targetClass({ zone: 'field', slot: i })} ${mergePulse === t?.id ? 'merge-pop' : ''}`}
                         style={{
                           left: x,
                           top: y,
@@ -475,10 +667,10 @@ export default function Home() {
                         }}
                         disabled={ended}
                         data-phase={t?.phase}
-                        onClick={() => {
-                          setSelected(selected === i ? null : i);
-                          if (t) setKind(t.kind);
-                        }}
+                        data-drop-zone="field"
+                        data-drop-slot={i}
+                        {...(t ? dragProps(t.id) : {})}
+                        onClick={() => clickPlace({ zone: 'field', slot: i })}
                         aria-label={
                           t
                             ? `${TYPES[t.kind].name}，${t.level}级，查看升级`
@@ -497,9 +689,16 @@ export default function Home() {
                                     : undefined,
                               }}
                             >
-                              <GameSprite row={ROW[t.kind]} frame={frame} />
+                              <GuardSprite
+                                kind={t.kind}
+                                level={t.level}
+                                frame={frame}
+                              />
                             </span>
-                            <span className="level">{'•'.repeat(t.level)}</span>
+                            <span className="level" data-level={t.level}>
+                              Lv.{t.level}
+                              {t.level === MAX_LEVEL ? ' MAX' : ''}
+                            </span>
                             {t.phase === 'aim' && (
                               <span className="charge">
                                 <i
@@ -787,115 +986,189 @@ export default function Home() {
             </div>
           )}
         </div>
-        <aside className="control-deck">
-          <div className="deck-heading">
-            <span className="eyebrow">MOONWOOD / 守卫营地</span>
-            <h1>
-              让小兵
-              <br />
-              <em>闻风丧胆。</em>
-            </h1>
-            <p>
-              箭尖、冰刺、炮口。
-              <br />
-              每一种害怕，都有对应的办法。
-            </p>
-          </div>
-          <div className="deck-label">
-            <span>
-              {selected !== null
-                ? `阵地 ${selected + 1} · ${tower ? '守卫详情' : '部署守卫'}`
-                : '选择你的防御小队'}
-            </span>
-            {selected !== null ? (
+        <aside className="control-deck camp-deck">
+          <section className="guard-shop" aria-label="守卫商店">
+            <div className="camp-heading">
+              <h2>
+                <ShoppingBag size={17} />
+                守卫商店
+              </h2>
               <button
-                className="icon-button"
-                aria-label="取消选择"
-                onClick={() => setSelected(null)}
-              >
-                <X size={17} />
-              </button>
-            ) : (
-              <span>
-                {game.towers.length}/{SLOTS.length}
-              </span>
-            )}
-          </div>
-          {tower ? (
-            <div className="upgrade-panel">
-              <GameSprite
-                row={ROW[tower.kind]}
-                frame={
-                  tower.phase === 'aim' ? 1 : tower.phase === 'recover' ? 2 : 0
-                }
-              />
-              <div>
-                <b>{TYPES[tower.kind].name}</b>
-                <span>等级 {tower.level} / 3</span>
-                <small>{TYPES[tower.kind].detail}</small>
-              </div>
-              <button
-                className="upgrade"
-                disabled={
-                  tower.level >= 3 || game.gold < tower.level * 50 || ended
-                }
+                className="refresh-shop"
+                disabled={ended || game.gold < REFRESH_COST}
                 onClick={() => {
-                  if (upgrade(live.current, tower.slot)) {
-                    playSound(tower.kind);
+                  if (refreshShop(live.current)) {
+                    setMessage('商店已刷新，购买的守卫会进入守卫厅。');
                     sync();
                   }
                 }}
               >
-                <ArrowUp size={17} />
-                {tower.level === 3 ? '满级' : `${tower.level * 50}`}
-              </button>
-              <button
-                className="sell"
-                disabled={ended}
-                onClick={() => {
-                  sell(live.current, tower.slot);
-                  setSelected(null);
-                  sync();
-                }}
-              >
-                回收 +{Math.floor(tower.spent * 0.7)} 金币
+                <RefreshCw size={15} />
+                刷新 <Coins size={12} />
+                {REFRESH_COST}
               </button>
             </div>
-          ) : (
-            <div className="tower-cards">
-              {KINDS.map((k) => (
-                <button
-                  key={k}
-                  className={`tower-card ${k} ${kind === k ? 'active' : ''}`}
-                  aria-pressed={kind === k}
-                  onClick={() => {
-                    setKind(k);
-                    if (selected === null)
-                      setMessage('选择战场上的 ＋ 空地，就能部署这位守卫。');
-                  }}
-                >
-                  <GameSprite row={ROW[k]} />
-                  <div>
-                    <b>{TYPES[k].name}</b>
-                    <small>{TYPES[k].detail}</small>
+            <div className="shop-offers">
+              {game.shop.map((offer, index) =>
+                offer ? (
+                  <button
+                    key={offer.id}
+                    className={'shop-offer ' + offer.kind}
+                    disabled={
+                      ended ||
+                      game.gold < offer.price ||
+                      game.bench.every(Boolean)
+                    }
+                    onClick={() => {
+                      if (buy(live.current, offer.id)) {
+                        playSound(offer.kind);
+                        setMessage(
+                          TYPES[offer.kind].name +
+                            '已加入守卫厅。可以保留、上阵或合成。',
+                        );
+                        sync();
+                      }
+                    }}
+                    aria-label={
+                      '购买1级' +
+                      TYPES[offer.kind].name +
+                      '，' +
+                      offer.price +
+                      '金币'
+                    }
+                  >
+                    <GuardSprite kind={offer.kind} level={1} />
+                    <b>{TYPES[offer.kind].name}</b>
+                    <span className="offer-price">
+                      <Coins size={12} />
+                      {offer.price}
+                      <small>Lv.1</small>
+                    </span>
+                  </button>
+                ) : (
+                  <div key={'sold-' + index} className="offer-sold">
+                    <ShoppingBag size={22} />
+                    <span>已招募</span>
                   </div>
-                  <span className="price">
-                    <Coins size={13} />
-                    {TYPES[k].cost}
-                  </span>
-                  {kind === k && <Check className="card-check" size={13} />}
+                ),
+              )}
+            </div>
+          </section>
+          <section
+            className="guard-hall"
+            data-drop-zone="bench-auto"
+            aria-label="守卫厅"
+          >
+            <div className="camp-heading">
+              <h2>
+                <Warehouse size={17} />
+                守卫厅{' '}
+                <small>
+                  {game.bench.filter(Boolean).length}/{BENCH_SIZE}
+                </small>
+              </h2>
+              <span>
+                {game.bench.every(Boolean)
+                  ? '已满 · 合成或出售'
+                  : '待命不自动上阵'}
+              </span>
+            </div>
+            <div className="bench-slots">
+              {game.bench.map((unit, index) => (
+                <button
+                  key={index}
+                  className={
+                    'bench-slot ' +
+                    (unit ? unit.kind : 'empty') +
+                    (selected === unit?.id ? ' selected' : '') +
+                    targetClass({ zone: 'bench', slot: index }) +
+                    (mergePulse === unit?.id ? ' merge-pop' : '')
+                  }
+                  data-drop-zone="bench"
+                  data-drop-slot={index}
+                  {...(unit ? dragProps(unit.id) : {})}
+                  disabled={ended}
+                  onClick={() => clickPlace({ zone: 'bench', slot: index })}
+                  aria-label={
+                    unit
+                      ? '守卫厅' +
+                        (index + 1) +
+                        '，' +
+                        TYPES[unit.kind].name +
+                        '，' +
+                        unit.level +
+                        '级'
+                      : '守卫厅空位' + (index + 1)
+                  }
+                >
+                  {unit ? (
+                    <>
+                      <GuardSprite kind={unit.kind} level={unit.level} />
+                      <span className="bench-level" data-level={unit.level}>
+                        Lv.{unit.level}
+                        {unit.level === MAX_LEVEL ? ' MAX' : ''}
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <Plus size={16} />
+                      <small>{index + 1}</small>
+                    </>
+                  )}
                 </button>
               ))}
             </div>
-          )}
-          <div className="tactical-note">
-            <span>打它的弱点</span>
-            <div>
-              <b className="arrow">怕扎 → 弓手</b>
-              <b className="frost">怕冷 → 冰塔</b>
-              <b className="ember">怕炸 → 火炮</b>
-            </div>
-            <p>弱点命中伤害 +20%，惊退更远。首领不容易被吓退。</p>
+          </section>
+          <div className="selection-bar">
+            {chosen ? (
+              <>
+                <div>
+                  <b>
+                    {TYPES[chosen.unit.kind].name} · Lv.{chosen.unit.level}
+                  </b>
+                  <span>
+                    {RANKS[chosen.unit.level - 1]} · 伤害{' '}
+                    {Math.round(
+                      towerDamage(chosen.unit.kind, chosen.unit.level),
+                    )}
+                  </span>
+                </div>
+                <button
+                  className="merge-button"
+                  disabled={!partner || ended}
+                  onClick={mergeSelected}
+                >
+                  <Combine size={15} />
+                  {chosen.unit.level === MAX_LEVEL ? '顶级' : '合成'}
+                </button>
+                <button
+                  className="sell-unit"
+                  disabled={ended}
+                  onClick={() => {
+                    if (sell(live.current, chosen.unit.id)) {
+                      setSelected(null);
+                      setMessage('已出售，返还少量金币。');
+                      sync();
+                    }
+                  }}
+                >
+                  卖 +{saleValue(chosen.unit)}
+                </button>
+                <button
+                  className="clear-choice"
+                  onClick={() => setSelected(null)}
+                  aria-label="取消选择"
+                >
+                  <X size={15} />
+                </button>
+              </>
+            ) : (
+              <p>
+                <Combine size={17} />
+                同种同级 2 合 1 · 最高 Lv.{MAX_LEVEL}
+                <small>拖动，或先点守卫再点目标</small>
+              </p>
+            )}
           </div>
           <div className="battle-actions">
             <button
@@ -909,47 +1182,35 @@ export default function Home() {
               onClick={() => {
                 if (cast(live.current)) sync();
               }}
-              aria-label="释放月霜，全场伤害、击退并减速"
+              aria-label="释放月霜"
             >
               <Snowflake size={23} />
               <span>
-                {game.spell > 0 ? `${Math.ceil(game.spell)}s` : '月霜'}
+                {game.spell > 0 ? Math.ceil(game.spell) + 's' : '月霜'}
               </span>
             </button>
-            {selected !== null && !tower ? (
-              <button
-                className="primary"
-                disabled={game.gold < TYPES[kind].cost || ended}
-                onClick={place}
-              >
-                <Plus size={18} />
-                部署 · {TYPES[kind].cost}
-                <Coins size={15} />
-              </button>
-            ) : (
-              <button
-                className="primary"
-                disabled={game.status !== 'ready'}
-                onClick={begin}
-              >
-                {game.status === 'battle' ? (
-                  <Swords size={18} />
-                ) : (
-                  <Play size={18} fill="currentColor" />
-                )}
-                {game.status === 'battle'
-                  ? `来敌 ${enemyCount} 只`
-                  : ended
-                    ? '挑战结束'
-                    : game.wave
-                      ? `迎接第 ${game.wave + 1} 波`
-                      : '放马过来'}
-                {game.status === 'ready' && <ArrowRight size={18} />}
-              </button>
-            )}
+            <button
+              className="primary"
+              disabled={game.status !== 'ready'}
+              onClick={begin}
+            >
+              {game.status === 'battle' ? (
+                <Swords size={18} />
+              ) : (
+                <Play size={18} fill="currentColor" />
+              )}
+              {game.status === 'battle'
+                ? '来敌 ' + enemyCount + ' 只'
+                : ended
+                  ? '挑战结束'
+                  : game.wave
+                    ? '迎接第 ' + (game.wave + 1) + ' 波'
+                    : '放马过来'}
+              {game.status === 'ready' && <ArrowRight size={18} />}
+            </button>
             <button
               className="speed"
-              aria-label={`切换速度，当前${game.speed}倍`}
+              aria-label={'切换速度，当前' + game.speed + '倍'}
               onClick={() => {
                 live.current.speed = game.speed === 1 ? 2 : 1;
                 sync();
@@ -965,6 +1226,18 @@ export default function Home() {
           </p>
         </aside>
       </section>
+      {dragPreview && locate(game, dragPreview.id) && (
+        <div
+          className="drag-ghost"
+          style={{ left: dragPreview.x, top: dragPreview.y }}
+        >
+          <GuardSprite
+            kind={locate(game, dragPreview.id)!.unit.kind}
+            level={locate(game, dragPreview.id)!.unit.level}
+          />
+          <b>Lv.{locate(game, dragPreview.id)!.unit.level}</b>
+        </div>
+      )}
       <Dialog open={help} onOpenChange={setHelp}>
         <DialogContent className="help-dialog">
           <DialogTitle>小兵有脾气，守卫有绝活</DialogTitle>
@@ -972,21 +1245,30 @@ export default function Home() {
             布置防线，守住八波来敌。慢一点，看清每一次拉弓和惊退。
           </DialogDescription>
           <ol>
-            <li>{SLOTS.length} 个布防位置。先点空地，再选守卫并部署。</li>
             <li>
-              游侠拉弓点射、冰塔蓄力减速、火炮范围轰击。弹药飞到才造成伤害。
+              商店有 3 个货位，刷新花费 {REFRESH_COST} 金币，购买后进入守卫厅。
             </li>
             <li>
-              小兵各有「怕扎 / 怕冷 / 怕炸」弱点，命中弱点多造成 20%
-              伤害，惊退更远。
+              守卫厅有 {BENCH_SIZE}{' '}
+              格。可以暂时保留守卫，满员时先合成、上阵或出售。
             </li>
             <li>
-              所有武器都能击退。冰箭让小兵哆嗦，火炮让它们倒退逃跑；重甲首领更难被击退。
+              拖到空格即可移动；拖到同种同级守卫上即可二合一，最高 {MAX_LEVEL}{' '}
+              级，不额外收费。
             </li>
-            <li>点击已有守卫升级或回收。月霜全场冻结，冷却 22 秒。</li>
             <li>
-              战场随横竖屏等比适配。用右上角 ＋ 放大后滑动查看，百分比按钮还原。
+              守卫厅与战场之间可以双向拖动合成，也可以在各自区域内合成。不同种类、不同等级或顶级不会合成。
             </li>
+            <li>
+              不方便拖动时，先点选守卫再点目标；“合成”按钮会寻找同种同级伙伴并合入当前守卫。
+            </li>
+            <li>
+              选中守卫可出售，返还其累计购买价格的 25%。取消拖动不会丢失守卫。
+            </li>
+            <li>
+              等级越高，伤害、射程、体积与阶级装饰越强。保留拉弓、炮击、冰冻、弱点及惊退机制。
+            </li>
+            <li>战场可放大滑动；月霜冷却 22 秒。切出页面自动暂停。</li>
           </ol>
           <button className="primary" onClick={() => setHelp(false)}>
             明白了，安排它们！

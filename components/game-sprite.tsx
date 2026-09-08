@@ -1,4 +1,28 @@
 import type { CSSProperties } from 'react';
+import { Shield, Gem, Crown } from 'lucide-react';
+import type { TowerKind } from '@/lib/game';
+
+export function GuardSprite({
+  kind,
+  level,
+  frame = 0,
+}: {
+  kind: TowerKind;
+  level: number;
+  frame?: number;
+}) {
+  const Badge = level === 4 ? Crown : level === 3 ? Gem : Shield;
+  return (
+    <span
+      className={'guard-art ' + kind}
+      data-level={level}
+      style={{ '--rank-scale': 1 + (level - 1) * 0.065 } as CSSProperties}
+    >
+      <GameSprite row={{ arrow: 0, ember: 1, frost: 2 }[kind]} frame={frame} />
+      {level > 1 && <Badge className="rank-emblem" aria-hidden="true" />}
+    </span>
+  );
+}
 // Authored atlas frames have uneven gutters: crop by inspected bounds, keep feet anchored.
 const DEFENDERS = [
   [
