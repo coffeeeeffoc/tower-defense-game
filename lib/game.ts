@@ -1,10 +1,15 @@
+import {
+  DEFAULT_BALANCE,
+  enemyHealth,
+  parseBalance,
+  type Balance,
+} from './balance.ts';
 export type TowerKind = 'arrow' | 'frost' | 'ember';
 export type Point = [number, number];
 export const TYPES = {
   arrow: {
     name: '游侠弓手',
     cost: 60,
-    damage: 32,
     range: 135,
     interval: 1.9,
     windup: 0.65,
@@ -14,7 +19,6 @@ export const TYPES = {
   frost: {
     name: '冰晶法塔',
     cost: 80,
-    damage: 20,
     range: 128,
     interval: 2.6,
     windup: 0.85,
@@ -24,7 +28,6 @@ export const TYPES = {
   ember: {
     name: '重装火炮',
     cost: 100,
-    damage: 68,
     range: 145,
     interval: 3.6,
     windup: 1,
@@ -165,6 +168,7 @@ export type Impact = {
   kill: boolean;
 };
 export type Game = {
+  balance: Balance;
   gold: number;
   lives: number;
   wave: number;
@@ -199,9 +203,11 @@ function makeTower(slot: number, unit: Guardian, cooldown = 0): Tower {
     aim: [SLOTS[slot][0] + 50, SLOTS[slot][1]],
   };
 }
-export function newGame(): Game {
+export function newGame(balance: Balance = DEFAULT_BALANCE): Game {
+  balance = parseBalance(balance);
   return {
-    gold: 260,
+    balance,
+    gold: balance.initialGold,
     lives: 20,
     wave: 0,
     kills: 0,
@@ -313,6 +319,11 @@ export function moveProblem(g: Game, id: number, to: Location): string | null {
   const source = locate(g, id);
   if (!source) return '这名守卫已不在原位';
   const target = unitAt(g, to);
+  if (
+    g.status === 'battle' &&
+    (source.at.zone !== 'bench' || to.zone !== 'field' || target)
+  )
+    return '战斗中仅可将守卫厅援军部署到空阵地；换位、回收和合成请等本波结束';
   if (!target) return null;
   if (target.id === id) return '已在这里';
   if (target.kind !== source.unit.kind) return '只能合成同一种守卫';
@@ -347,6 +358,7 @@ export function moveGuardian(g: Game, id: number, to: Location) {
   return true;
 }
 export function benchDestination(g: Game, id: number): Location | null {
+  if (g.status !== 'ready') return null;
   const source = locate(g, id);
   if (!source) return null;
   let slot = g.bench.findIndex((u) => u && canMerge(source.unit, u));
@@ -355,13 +367,28 @@ export function benchDestination(g: Game, id: number): Location | null {
 }
 export function sell(g: Game, id: number) {
   const source = locate(g, id);
-  if (!source || ['won', 'lost'].includes(g.status)) return false;
+  if (!source || g.status !== 'ready') return false;
   g.gold += saleValue(source.unit);
   removeUnit(g, id);
   return true;
 }
-export function towerDamage(kind: TowerKind, level: number) {
-  return TYPES[kind].damage * 2.1 ** (level - 1);
+export function towerDamage(
+  kind: TowerKind,
+  level: number,
+  balance: Balance = DEFAULT_BALANCE,
+) {
+  return balance[`${kind}Damage`] * balance.damagePerLevel ** (level - 1);
+}
+export function applyBalance(g: Game, input: unknown) {
+  const next = parseBalance(input);
+  // Keep existing wounds: changing health must neither heal enemies nor revive corpses.
+  for (const e of g.enemies) {
+    if (e.hp <= 0) continue;
+    const maxHp = enemyHealth(next, g.wave, e.boss);
+    e.hp = (e.hp / e.maxHp) * maxHp;
+    e.maxHp = maxHp;
+  }
+  g.balance = next;
 }
 export function startWave(g: Game) {
   if (g.status !== 'ready' || g.wave >= 8) return false;
@@ -421,7 +448,7 @@ export function cast(g: Game) {
   return true;
 }
 export function spawnEnemy(g: Game, boss = false): Enemy {
-  const hp = (60 + g.wave * 23) * (boss ? 5 : 1);
+  const hp = enemyHealth(g.balance, g.wave, boss);
   const e: Enemy = {
     id: g.nextId++,
     distance: 0,
@@ -461,7 +488,7 @@ export function step(g: Game, dt: number) {
   for (const e of g.enemies) {
     if (e.hp <= 0) {
       if (!e.paid) {
-        g.gold += e.boss ? 65 : 14;
+        g.gold += e.boss ? g.balance.bossGold : g.balance.killGold;
         g.kills++;
         e.paid = true;
       }
@@ -541,7 +568,7 @@ export function step(g: Game, dt: number) {
       target: target.id,
       elapsed: 0,
       duration: t.kind === 'ember' ? 0.75 : t.kind === 'frost' ? 0.6 : 0.4,
-      damage: towerDamage(t.kind, t.level),
+      damage: towerDamage(t.kind, t.level, g.balance),
     });
     t.phase = 'recover';
     t.phaseTime = 0;
@@ -554,7 +581,7 @@ export function step(g: Game, dt: number) {
     g.shots = [];
     g.sounds = [];
   } else if (!g.left && !g.enemies.length && !g.shots.length) {
-    g.gold += 45;
+    g.gold += g.balance.waveGold;
     g.status = g.wave === 8 ? 'won' : 'ready';
     g.flash = 0;
     g.impacts = [];

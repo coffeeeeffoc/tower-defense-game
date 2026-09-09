@@ -1,6 +1,7 @@
 'use client';
 import {
   useEffect,
+  useCallback,
   useRef,
   useState,
   type CSSProperties,
@@ -42,6 +43,8 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog';
 import GameSprite, { GuardSprite } from '@/components/game-sprite';
+import BalancePanel from '@/components/balance-panel';
+import type { Balance } from '@/lib/balance';
 import {
   TYPES,
   PATH,
@@ -50,6 +53,7 @@ import {
   project,
   boardFit,
   newGame,
+  applyBalance,
   buy,
   refreshShop,
   moveGuardian,
@@ -95,9 +99,35 @@ export default function Home() {
   const [view, setView] = useState({ width: 480, height: 600, wide: false });
   const audio = useRef<AudioContext | null>(null);
   const soundOn = useRef(false);
+  useEffect(() => {
+    if (selected === null) return;
+    const escape = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape' || e.defaultPrevented) return;
+      setSelected(null);
+    };
+    document.addEventListener('keydown', escape);
+    return () => document.removeEventListener('keydown', escape);
+  }, [selected]);
   function sync() {
     setGame({ ...live.current });
   }
+  function begin() {
+    if (startWave(live.current)) {
+      setSelected(null);
+      setMessage(
+        live.current.wave % 4 === 0
+          ? '首领来了！重甲能抵抗大部分击退。'
+          : '看准弱点：怕扎、怕冷、怕炸，吓它们一跳！',
+      );
+      sync();
+      return true;
+    }
+    return false;
+  }
+  const updateBalance = useCallback((balance: Balance) => {
+    applyBalance(live.current, balance);
+    setGame({ ...live.current });
+  }, []);
   function playSound(k: TowerKind) {
     if (!soundOn.current) return;
     try {
@@ -236,7 +266,7 @@ export default function Home() {
     register({
       name: 'command_defense',
       description:
-        'Buy a shop offer into the six-slot hall, refresh the shop for 15 gold, move or merge a guardian, sell one, or start a wave. Matching kind and level merge up to level 4.',
+        'Buy into the six-slot hall or refresh for 15 gold. During battle (including paused), only deploy hall guardians onto empty field slots. Field relocation, recall, all merges and sales require ready status. Matching kind and level merge up to level 4.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -270,7 +300,7 @@ export default function Home() {
         )
           throw new Error('Invalid action or fields');
         let ok = false;
-        if (p.action === 'start') ok = startWave(live.current);
+        if (p.action === 'start') ok = begin();
         else if (p.action === 'refresh') ok = refreshShop(live.current);
         else if (typeof p.id === 'number' && Number.isInteger(p.id)) {
           if (p.action === 'buy') ok = buy(live.current, p.id);
@@ -287,7 +317,7 @@ export default function Home() {
         }
         if (!ok)
           throw new Error(
-            'Action unavailable: check gold, hall space, guardian IDs and matching levels',
+            'Action unavailable: during battle only hall-to-empty-field deployment is allowed; check gold, hall space, guardian IDs and matching levels',
           );
         flushSync(() => setGame({ ...live.current }));
         return snapshot();
@@ -301,6 +331,7 @@ export default function Home() {
       ? game.towers.find((t) => t.id === selected)
       : undefined;
   const ended = game.status === 'won' || game.status === 'lost';
+  const canArrange = game.status === 'ready';
   const [dragPreview, setDragPreview] = useState<{
     id: number;
     x: number;
@@ -350,7 +381,9 @@ export default function Home() {
               (unit.level === MAX_LEVEL ? ' · 已达顶级！' : '！')
           : to.zone === 'bench'
             ? '已回到守卫厅，可以观望或继续合成。'
-            : '守卫已部署。也可以拖回守卫厅待命。',
+            : live.current.status === 'ready'
+              ? '守卫已部署。也可以拖回守卫厅待命。'
+              : '援军已上阵，本波结束前不能换位或回收。',
       );
       sync();
     }
@@ -365,7 +398,11 @@ export default function Home() {
           TYPES[target.kind].name +
           ' ' +
           target.level +
-          ' 级：拖动换位，拖到同种同级守卫上合成。',
+          (live.current.status === 'ready'
+            ? ' 级：拖动换位，拖到同种同级守卫上合成。'
+            : to.zone === 'bench'
+              ? ' 级：可拖到战场空阵地增援。'
+              : ' 级：阵地已锁定，本波结束后可调整。'),
       );
     } else setSelected(null);
   }
@@ -387,9 +424,13 @@ export default function Home() {
     setDropTarget(null);
   }
   function dragProps(id: number) {
+    const movable = () =>
+      live.current.status === 'ready' ||
+      (live.current.status === 'battle' &&
+        locate(live.current, id)?.at.zone === 'bench');
     return {
       onPointerDown: (e: ReactPointerEvent<HTMLButtonElement>) => {
-        if (!e.isPrimary || e.button !== 0 || ended) return;
+        if (!e.isPrimary || e.button !== 0 || !movable()) return;
         suppressClick.current = 0;
         drag.current = {
           id,
@@ -401,6 +442,10 @@ export default function Home() {
         e.currentTarget.setPointerCapture(e.pointerId);
       },
       onPointerMove: (e: ReactPointerEvent<HTMLButtonElement>) => {
+        if (!movable()) {
+          cancelDrag();
+          return;
+        }
         const d = drag.current;
         if (!d || d.pointer !== e.pointerId) return;
         if (!d.active && Math.hypot(e.clientX - d.x, e.clientY - d.y) < 8)
@@ -434,7 +479,9 @@ export default function Home() {
     if (!source) return '';
     const hover = dropTarget?.zone === to.zone && dropTarget.slot === to.slot;
     return (
-      (target && canMerge(source.unit, target) ? ' merge-ready' : '') +
+      (canArrange && target && canMerge(source.unit, target)
+        ? ' merge-ready'
+        : '') +
       (hover
         ? moveProblem(game, id, to)
           ? ' drop-invalid'
@@ -454,25 +501,17 @@ export default function Home() {
     : undefined;
   function reset() {
     cancelDrag();
-    live.current = newGame();
+    live.current = newGame(live.current.balance);
     setSelected(null);
     setMessage('新的守护开始了。试试在转角交叉布防。');
     sync();
   }
-  function begin() {
-    if (startWave(live.current)) {
-      setSelected(null);
-      setMessage(
-        live.current.wave % 4 === 0
-          ? '首领来了！重甲能抵抗大部分击退。'
-          : '看准弱点：怕扎、怕冷、怕炸，吓它们一跳！',
-      );
-      sync();
-    }
-  }
   const [coreX, coreY] = point([396, 575]);
   return (
-    <main className={`app-shell ${expanded ? 'expanded' : ''}`}>
+    <main
+      className={`app-shell ${expanded ? 'expanded' : ''}`}
+      data-arranging={canArrange}
+    >
       <header className="masthead">
         <div className="brand">
           <span className="brand-mark">
@@ -483,6 +522,13 @@ export default function Home() {
           </div>
         </div>
         <div className="header-right">
+          {process.env.NODE_ENV === 'development' && (
+            <BalancePanel
+              balance={game.balance}
+              onApply={updateBalance}
+              onRestart={reset}
+            />
+          )}
           <span className="edition">萤火之森 / {SLOTS.length} 处阵地</span>
           <button
             className="icon-button"
@@ -504,7 +550,7 @@ export default function Home() {
           </button>
         </div>
       </header>
-      <section className="game-console" aria-label="塔防战场">
+      <section className="game-console play-console" aria-label="塔防战场">
         <div className="hud">
           <div>
             <Heart className="heart" size={19} />
@@ -553,6 +599,68 @@ export default function Home() {
               {game.paused ? <Play size={18} /> : <Pause size={18} />}
             </button>
           </div>
+        </div>
+        <div className="battle-actions top-actions" aria-label="波次与战斗操作">
+          {game.status === 'battle' && (
+            <div className="wave-progress">
+              <span>
+                第 {game.wave} 波 · 剩余 {enemyCount} 只
+              </span>
+              <progress
+                aria-label="本波击退进度"
+                max={6 + game.wave * 2}
+                value={6 + game.wave * 2 - enemyCount}
+              />
+            </div>
+          )}
+          {game.status === 'battle' && (
+            <>
+              <button
+                className="spell"
+                disabled={
+                  game.status !== 'battle' ||
+                  game.spell > 0 ||
+                  game.paused ||
+                  !game.enemies.some((e) => e.hp > 0)
+                }
+                onClick={() => {
+                  if (cast(live.current)) sync();
+                }}
+                aria-label="释放月霜"
+              >
+                <Snowflake size={23} />
+                <span>
+                  {game.spell > 0 ? Math.ceil(game.spell) + 's' : '月霜'}
+                </span>
+              </button>
+            </>
+          )}
+          {game.status !== 'battle' && (
+            <button
+              className="primary"
+              disabled={game.status !== 'ready'}
+              onClick={begin}
+            >
+              <Play size={18} fill="currentColor" />
+              {ended
+                ? '挑战结束'
+                : game.wave
+                  ? '迎接第 ' + (game.wave + 1) + ' 波'
+                  : '放马过来'}
+              {game.status === 'ready' && <ArrowRight size={18} />}
+            </button>
+          )}
+          <button
+            className="speed"
+            aria-label={'切换速度，当前' + game.speed + '倍'}
+            onClick={() => {
+              live.current.speed = game.speed === 1 ? 2 : 1;
+              sync();
+            }}
+          >
+            <FastForward size={20} />
+            <span>{game.speed}×</span>
+          </button>
         </div>
         <div className="map-viewport" ref={viewport}>
           <div className="map-scroller">
@@ -669,8 +777,8 @@ export default function Home() {
                         onClick={() => clickPlace({ zone: 'field', slot: i })}
                         aria-label={
                           t
-                            ? `${TYPES[t.kind].name}，${t.level}级，查看升级`
-                            : `空地 ${i + 1}，建造防御塔`
+                            ? `${TYPES[t.kind].name}，${t.level}级，查看详情`
+                            : `空地 ${i + 1}，可部署守卫`
                         }
                       >
                         {t ? (
@@ -913,7 +1021,7 @@ export default function Home() {
                   : `第 ${game.wave} 波 · ${enemyCount} 只来敌`
                 : ended
                   ? '挑战结束'
-                  : '布防时间'}
+                  : '布防时间 · 可调整阵容'}
               {game.wave > 0 && game.wave % 4 === 0 && game.status === 'battle'
                 ? ' · 首领出没'
                 : ''}
@@ -947,7 +1055,7 @@ export default function Home() {
           {zoom > 1 && (
             <div className="pan-hint">滑动战场查看 · 点百分比还原</div>
           )}
-          {game.paused && game.status === 'battle' && (
+          {game.paused && game.status === 'battle' && !dragPreview && (
             <div className="game-overlay">
               <Pause size={36} />
               <h2>先喘口气</h2>
@@ -982,8 +1090,8 @@ export default function Home() {
             </div>
           )}
         </div>
-        <aside className="control-deck camp-deck">
-          <section className="guard-shop" aria-label="守卫商店">
+        <aside className="control-deck camp-deck compact-deck">
+          <section id="guard-shop" className="guard-shop" aria-label="守卫商店">
             <div className="camp-heading">
               <h2>
                 <ShoppingBag size={17} />
@@ -1020,7 +1128,9 @@ export default function Home() {
                         playSound(offer.kind);
                         setMessage(
                           TYPES[offer.kind].name +
-                            '已加入守卫厅。可以保留、上阵或合成。',
+                            (live.current.status === 'ready'
+                              ? '已加入守卫厅。可以保留、上阵或合成。'
+                              : '已加入守卫厅，可拖到战场空阵地增援。'),
                         );
                         sync();
                       }
@@ -1051,7 +1161,9 @@ export default function Home() {
             </div>
           </section>
           <section
+            id="guard-hall"
             className="guard-hall"
+
             data-drop-zone="bench-auto"
             aria-label="守卫厅"
           >
@@ -1064,9 +1176,11 @@ export default function Home() {
                 </small>
               </h2>
               <span>
-                {game.bench.every(Boolean)
-                  ? '已满 · 合成或出售'
-                  : '待命不自动上阵'}
+                {!canArrange
+                  ? '可拖入空阵地增援'
+                  : game.bench.every(Boolean)
+                    ? '已满 · 合成或出售'
+                    : '待命不自动上阵'}
               </span>
             </div>
             <div className="bench-slots">
@@ -1115,7 +1229,7 @@ export default function Home() {
               ))}
             </div>
           </section>
-          <div className="selection-bar">
+          <div className="selection-bar" hidden={!chosen || !!dragPreview}>
             {chosen ? (
               <>
                 <div>
@@ -1125,12 +1239,21 @@ export default function Home() {
                   <span>
                     {RANKS[chosen.unit.level - 1]} · 伤害{' '}
                     {Math.round(
-                      towerDamage(chosen.unit.kind, chosen.unit.level),
+                      towerDamage(
+                        chosen.unit.kind,
+                        chosen.unit.level,
+                        game.balance,
+                      ),
                     )}
+                    {!canArrange &&
+                      (chosen.at.zone === 'bench'
+                        ? ' · 可上阵'
+                        : ' · 阵地锁定')}
                   </span>
                 </div>
                 <button
                   className="merge-button"
+                  hidden={!canArrange}
                   disabled={!partner || ended}
                   onClick={mergeSelected}
                 >
@@ -1139,6 +1262,7 @@ export default function Home() {
                 </button>
                 <button
                   className="sell-unit"
+                  hidden={!canArrange}
                   disabled={ended}
                   onClick={() => {
                     if (sell(live.current, chosen.unit.id)) {
@@ -1158,71 +1282,19 @@ export default function Home() {
                   <X size={15} />
                 </button>
               </>
-            ) : (
-              <p>
-                <Combine size={17} />
-                同种同级 2 合 1 · 最高 Lv.{MAX_LEVEL}
-                <small>点击查看 · 拖动换位或合成</small>
-              </p>
-            )}
+            ) : null}
           </div>
-          <div className="battle-actions">
-            <button
-              className="spell"
-              disabled={
-                game.status !== 'battle' ||
-                game.spell > 0 ||
-                game.paused ||
-                !game.enemies.some((e) => e.hp > 0)
-              }
-              onClick={() => {
-                if (cast(live.current)) sync();
-              }}
-              aria-label="释放月霜"
-            >
-              <Snowflake size={23} />
-              <span>
-                {game.spell > 0 ? Math.ceil(game.spell) + 's' : '月霜'}
-              </span>
-            </button>
-            <button
-              className="primary"
-              disabled={game.status !== 'ready'}
-              onClick={begin}
-            >
-              {game.status === 'battle' ? (
-                <Swords size={18} />
-              ) : (
-                <Play size={18} fill="currentColor" />
-              )}
-              {game.status === 'battle'
-                ? '来敌 ' + enemyCount + ' 只'
-                : ended
-                  ? '挑战结束'
-                  : game.wave
-                    ? '迎接第 ' + (game.wave + 1) + ' 波'
-                    : '放马过来'}
-              {game.status === 'ready' && <ArrowRight size={18} />}
-            </button>
-            <button
-              className="speed"
-              aria-label={'切换速度，当前' + game.speed + '倍'}
-              onClick={() => {
-                live.current.speed = game.speed === 1 ? 2 : 1;
-                sync();
-              }}
-            >
-              <FastForward size={20} />
-              <span>{game.speed}×</span>
-            </button>
-          </div>
-          <p className="hint" role="status">
+
+          <output
+            key={message}
+            className={'hint camp-notice' + (!chosen ? ' visible' : '')}
+          >
             <Sparkles size={14} />
             {message}
-          </p>
+          </output>
         </aside>
       </section>
-      {dragPreview && locate(game, dragPreview.id) && (
+      {!ended && dragPreview && locate(game, dragPreview.id) && (
         <div
           className="drag-ghost"
           style={{ left: dragPreview.x, top: dragPreview.y }}
@@ -1242,7 +1314,11 @@ export default function Home() {
           </DialogDescription>
           <ol>
             <li>
+              战斗中可把守卫厅援军拖到空阵地。已上阵守卫不能换位或回收；合成和出售仅在布防阶段允许，暂停也遵守这些规则。
+            </li>
+            <li>
               商店有 3 个货位，刷新花费 {REFRESH_COST} 金币，购买后进入守卫厅。
+              战斗中仍可购买，并从守卫厅拖到空阵地即时增援。
             </li>
             <li>
               守卫厅有 {BENCH_SIZE}{' '}

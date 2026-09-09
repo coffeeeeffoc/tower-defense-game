@@ -2,6 +2,65 @@
 @import 'tw-animate-css';
 @import 'shadcn/tailwind.css';
 @custom-variant dark (&:is(.dark *));
+.balance-toggle,
+.balance-panel button {
+  border: 1px solid #c4e99f60;
+  border-radius: 8px;
+  background: #223625;
+  padding: 7px 10px;
+  font-size: 12px;
+}
+.balance-panel {
+  position: fixed;
+  z-index: 2000;
+  top: 72px;
+  right: 12px;
+  width: min(350px, calc(100vw - 24px));
+  max-height: calc(100dvh - 88px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 16px;
+  background: #182b22f5;
+  border: 1px solid #c4e99f60;
+  border-radius: 14px;
+  box-shadow: 0 12px 40px #0008;
+}
+.balance-panel p,
+.balance-notice {
+  display: block;
+  color: #bbccb3;
+  font-size: 12px;
+  line-height: 1.6;
+  margin: 10px 0;
+}
+.balance-field {
+  display: grid;
+  gap: 5px;
+  margin: 12px 0;
+  font-size: 13px;
+}
+.balance-field span,
+.balance-actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+.balance-field output {
+  color: #d0eaaa;
+  font-variant-numeric: tabular-nums;
+}
+.balance-field input {
+  width: 100%;
+  accent-color: #c9e99f;
+}
+.balance-field textarea {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #c4e99f60;
+  border-radius: 6px;
+  background: #102119;
+  font-size: 12px;
+}
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -176,6 +235,7 @@ button svg {
 }
 .map-viewport {
   position: relative;
+  isolation: isolate;
   grid-column: 1;
   grid-row: 2;
   min-height: 0;
@@ -225,6 +285,7 @@ button svg {
   pointer-events: none;
 }
 .map-svg {
+  overflow: visible;
   filter: drop-shadow(0 4px 1px #10271e80);
 }
 .projectiles {
@@ -1022,6 +1083,9 @@ button svg {
   user-select: none;
   -webkit-user-select: none;
 }
+.app-shell[data-arranging='false'] .plot.built {
+  touch-action: pan-x pan-y;
+}
 .plot.merge-ready:before {
   border: 2px solid #e3bfff;
   background: #80648755;
@@ -1077,128 +1141,204 @@ button svg {
   font-size: 13px;
   white-space: nowrap;
 }
-.control-deck.camp-deck {
-  padding: 20px 14px 12px;
-  gap: 18px;
+/* Keep recruitment within reach; wave controls stay above the battlefield. */
+.game-console.play-console {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: 48px 48px minmax(0, 1fr) auto;
 }
-.camp-heading {
-  display: flex;
-  justify-content: space-between;
+.play-console .map-viewport {
+  grid-row: 3;
+}
+.top-actions {
+  grid-row: 2;
+  grid-column: 1;
+  min-height: 0;
   align-items: center;
-  min-height: 35px;
-  gap: 5px;
-  margin-bottom: 10px;
+  padding: 2px 10px;
+  background: #1b3024;
+  border-bottom: 1px solid var(--border);
 }
-.camp-heading h2 {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 14px;
-  font-weight: 500;
-  margin: 0;
-  color: #e5edd7;
-  white-space: nowrap;
+.top-actions > button {
+  min-height: 40px;
+  min-width: 44px;
 }
-.camp-heading h2 small {
-  font-size: 12px;
-  color: #adc69c;
-  margin-left: 2px;
+.top-actions .primary {
+  flex: 1;
+  min-height: 40px;
 }
-.camp-heading > span {
-  font-size: 10px;
-  color: #adc09c;
+.top-actions .spell {
+  flex-direction: row;
+  padding: 0 10px;
 }
-.refresh-shop {
-  display: flex;
-  align-items: center;
+.wave-progress {
+  flex: 1;
+  min-width: 0;
+  display: grid;
   gap: 4px;
-  min-height: 36px;
-  border: 1px solid #d0dfaf50;
-  border-radius: 8px;
-  padding: 0 7px;
-  background: #b4d78114;
-  color: #d7e8b9;
+}
+.wave-progress span {
   font-size: 12px;
+  color: #c3d5b7;
+}
+.wave-progress progress {
+  width: 100%;
+  height: 5px;
+  accent-color: #c9e99f;
+}
+.control-deck.camp-deck.compact-deck {
+  position: relative;
+  grid-column: 1;
+  grid-row: 4;
+  overflow: visible;
+  z-index: 6;
+  padding: 6px 8px;
+  gap: 5px;
+  border-left: 0;
+  border-top: 1px solid var(--border);
+}
+.compact-deck [hidden] {
+  display: none;
+}
+.guard-shop,
+.guard-hall {
+  width: 100%;
+  max-width: 680px;
+  margin: 0 auto;
+}
+.guard-shop {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 44px;
+  gap: 5px;
+}
+.guard-shop .camp-heading {
+  grid-column: 2;
+  grid-row: 1;
+}
+.guard-shop h2 {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
 }
 .shop-offers {
+  grid-row: 1;
+  grid-column: 1;
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 7px;
+  gap: 5px;
+}
+.refresh-shop {
+  width: 44px;
+  height: 52px;
+  border: 1px solid #d0dfaf50;
+  border-radius: 8px;
+  padding: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 2px;
+  background: #b4d78114;
+  color: #d7e8b9;
+  font-size: 10px;
 }
 .shop-offer,
 .offer-sold {
-  min-height: 133px;
-  position: relative;
+  height: 52px;
+  min-width: 0;
+  padding: 2px;
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr);
+  grid-template-rows: 1fr 1fr;
   border: 1px solid #d4e1b527;
-  border-radius: 10px;
+  border-radius: 8px;
   background: #14291fb0;
   color: #e5ebd7;
-  padding: 5px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 5px;
-  min-width: 0;
 }
 .shop-offer:not(:disabled):hover {
   background: #bddd8b17;
-  box-shadow: 0 0 0 1px #c9dfaa44;
 }
 .shop-offer > .guard-art {
-  height: 78px;
-  max-width: 80px;
+  grid-column: 1;
+  grid-row: 1/3;
+  width: 38px;
+  height: 46px;
+  margin-left: -4px;
 }
 .shop-offer > b {
+  align-self: end;
+  font-size: 11px;
   font-weight: 500;
-  font-size: 12px;
   white-space: nowrap;
 }
 .offer-price {
   display: flex;
   align-items: center;
-  gap: 3px;
+  gap: 2px;
   color: #f1d98f;
-  font-size: 13px;
+  font-size: 11px;
 }
 .offer-price small {
-  font-size: 10px;
-  color: #a7b79b;
-  margin-left: 2px;
+  display: none;
 }
 .offer-sold {
-  color: #829777;
-  background: #10251b77;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
   border-style: dashed;
-  font-size: 12px;
-  gap: 12px;
+  color: #829777;
+  font-size: 11px;
 }
-.guard-hall {
-  border-top: 1px solid var(--border);
-  padding-top: 10px;
+.offer-sold svg {
+  width: 16px;
+}
+.guard-hall .camp-heading {
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.camp-heading h2 {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin: 0;
+  font-size: 11px;
+  font-weight: 500;
+}
+.camp-heading h2 svg {
+  width: 13px;
+  height: 13px;
+}
+.camp-heading h2 small,
+.camp-heading > span {
+  font-size: 10px;
+  color: #adc09c;
 }
 .bench-slots {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 5px;
 }
 .bench-slot {
-  min-width: 0;
-  height: 91px;
   position: relative;
+  min-width: 0;
+  height: 48px;
   display: grid;
   place-items: center;
-  padding: 3px 5px 13px;
+  padding: 0 1px 8px;
   border: 1px solid #b4cea23d;
-  border-radius: 10px;
+  border-radius: 7px;
   background: #13281e;
   color: #b5c9a3;
 }
 .bench-slot > .guard-art {
-  height: 78px;
-  width: 80px;
+  height: 47px;
+  width: 48px;
   max-width: 100%;
-  margin-top: -8px;
+  margin-top: -4px;
 }
 .bench-slot.empty {
   border-style: dashed;
@@ -1207,14 +1347,14 @@ button svg {
 }
 .bench-slot.empty small {
   position: absolute;
-  bottom: 6px;
-  font-size: 11px;
+  right: 4px;
+  bottom: 2px;
+  font-size: 9px;
   opacity: 0.7;
 }
 .bench-slot.selected {
   border-color: #d6efb2;
   background: #91b96d30;
-  box-shadow: inset 0 0 0 1px #e0f3bc60;
 }
 .bench-slot.merge-ready {
   border: 2px solid #d8b9f0;
@@ -1222,381 +1362,138 @@ button svg {
 }
 .bench-level {
   position: absolute;
-  bottom: 3px;
+  bottom: 1px;
   left: 50%;
   transform: translateX(-50%);
   border: 1px solid #b4c79760;
-  border-radius: 6px;
+  border-radius: 5px;
   background: #233824;
   color: #e1eac5;
-  padding: 1px 5px;
-  line-height: 14px;
-  font-size: 11px;
+  padding: 0 3px;
+  line-height: 12px;
+  font-size: 9px;
   white-space: nowrap;
 }
 .selection-bar {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  width: min(100%, 520px);
+  margin: auto;
   display: flex;
   align-items: center;
-  gap: 5px;
-  min-height: 72px;
-  flex-wrap: wrap;
-  border-top: 1px solid var(--border);
-  padding-top: 10px;
-  color: #d8e5c3;
+  gap: 4px;
+  min-height: 52px;
+  padding: 4px 8px;
+  border: 1px solid #b4cea24d;
+  border-radius: 10px;
+  background: #1a2c21f5;
+  box-shadow: 0 -5px 20px #0004;
 }
 .selection-bar > div {
   flex: 1;
-  min-width: 160px;
+  min-width: 0;
 }
 .selection-bar b {
-  font-size: 13px;
-  font-weight: 500;
   display: block;
+  font-size: 12px;
+  font-weight: 500;
 }
 .selection-bar span {
   display: block;
-  font-size: 11px;
+  font-size: 10px;
   color: #aabc99;
-  margin-top: 4px;
-}
-.selection-bar p {
-  margin: 0;
-  font-size: 12px;
-  line-height: 1.8;
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  flex-wrap: wrap;
-}
-.selection-bar p small {
-  display: block;
-  font-size: 11px;
-  color: #a8bd95;
-  width: 100%;
-  padding-left: 24px;
+  margin-top: 2px;
 }
 .merge-button,
-.sell-unit {
+.sell-unit,
+.clear-choice {
+  min-height: 44px;
+  min-width: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
   border: 1px solid #bcd79660;
   border-radius: 7px;
   background: #a8ce7420;
   color: #e0edbe;
-  min-height: 36px;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 0 8px;
-  font-size: 12px;
+  padding: 0 6px;
+  font-size: 11px;
+  white-space: nowrap;
 }
 .sell-unit {
   background: transparent;
   color: #d8cea3;
-  border-color: #d9c48d44;
 }
 .clear-choice {
-  min-width: 30px;
-  min-height: 36px;
-  display: grid;
-  place-items: center;
-  background: none;
   border: 0;
+  background: transparent;
   color: #a8bc92;
-  margin-left: auto;
 }
-.camp-deck .battle-actions {
-  margin-top: auto;
+.compact-deck .camp-notice {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: min(90%, 460px);
+  min-height: 0;
+  padding: 7px 10px;
+  border-radius: 8px;
+  background: #10251bea;
+  opacity: 0;
+  pointer-events: none;
 }
-.camp-deck .hint {
-  font-size: 11px;
-  min-height: 32px;
+.compact-deck .camp-notice.visible {
+  animation: camp-notice 3s both;
 }
-@media (min-width: 1100px) and (min-height: 850px) {
-  .control-deck.camp-deck {
-    padding: 28px 22px 18px;
-    gap: 22px;
+@keyframes camp-notice {
+  0%,
+  80% {
+    opacity: 1;
   }
-  .shop-offer,
-  .offer-sold {
-    min-height: 151px;
-  }
-  .shop-offer > .guard-art {
-    height: 95px;
-    max-width: 96px;
-  }
-  .bench-slot {
-    height: 108px;
-  }
-  .bench-slot > .guard-art {
-    height: 94px;
-    width: 96px;
-  }
-  .camp-heading h2 {
-    font-size: 16px;
+  100% {
+    opacity: 0;
   }
 }
 @media (max-width: 700px) and (orientation: portrait) {
-  .control-deck.camp-deck {
-    padding: 6px 9px;
-    gap: 6px;
+  .masthead {
+    height: 44px;
   }
-  .camp-heading {
-    min-height: 29px;
-    margin-bottom: 4px;
+  .brand small {
+    display: none;
   }
-  .camp-heading h2 {
-    font-size: 13px;
-  }
-  .camp-heading h2 svg {
-    width: 15px;
-  }
-  .camp-heading > span {
-    font-size: 10px;
-  }
-  .refresh-shop {
-    min-height: 29px;
-    font-size: 11px;
-  }
-  .shop-offer,
-  .offer-sold {
-    min-height: 65px;
-    padding: 3px;
-    gap: 2px;
-    display: grid;
-    grid-template-columns: 42px 1fr;
-    grid-template-rows: 1fr 1fr;
-  }
-  .shop-offer > .guard-art {
-    height: 59px;
-    width: 52px;
-    grid-row: 1/3;
-    grid-column: 1;
-    margin: -5px 0 0 -5px;
-  }
-  .shop-offer > b {
+  .top-actions .primary {
     font-size: 12px;
-    grid-column: 2;
-    align-self: end;
-  }
-  .offer-price {
-    font-size: 12px;
-    grid-column: 2;
-    align-self: start;
-    justify-content: center;
-  }
-  .offer-price small {
-    font-size: 9px;
-  }
-  .offer-sold {
-    display: flex;
-    min-height: 65px;
-    gap: 5px;
-  }
-  .offer-sold svg {
-    width: 18px;
-  }
-  .guard-hall {
-    padding-top: 3px;
-  }
-  .bench-slots {
-    grid-template-columns: repeat(6, minmax(0, 1fr));
-    gap: 5px;
-  }
-  .bench-slot {
-    height: 61px;
-    padding: 0 1px 8px;
-    border-radius: 8px;
-  }
-  .bench-slot > .guard-art {
-    height: 59px;
-    width: 60px;
-    max-width: 115%;
-    margin-top: -3px;
-  }
-  .bench-level {
-    font-size: 10px;
-    padding: 0 3px;
-    bottom: 1px;
-    line-height: 13px;
-  }
-  .bench-slot.empty small {
-    bottom: 3px;
-  }
-  .selection-bar {
-    min-height: 39px;
-    padding-top: 4px;
-    flex-wrap: nowrap;
-    gap: 4px;
-  }
-  .selection-bar > div {
-    min-width: 0;
-    flex: 1;
-  }
-  .selection-bar b {
-    font-size: 11px;
-  }
-  .selection-bar span {
-    font-size: 10px;
-    margin-top: 1px;
-  }
-  .selection-bar p {
-    font-size: 11px;
-    gap: 5px;
-    line-height: 1.3;
-  }
-  .selection-bar p small {
-    font-size: 10px;
-    padding-left: 0;
-    width: auto;
-  }
-  .merge-button,
-  .sell-unit {
-    font-size: 11px;
-    padding: 0 5px;
-    min-height: 31px;
-    white-space: nowrap;
-  }
-  .clear-choice {
-    min-height: 31px;
-    min-width: 24px;
-  }
-  .camp-deck .hint {
-    min-height: 24px;
-    font-size: 10px;
-    line-height: 1.3;
-  }
-  .camp-deck .battle-actions {
-    min-height: 43px;
-    margin-top: 0;
-  }
-  .camp-deck .primary {
-    min-height: 43px;
   }
 }
-@media (max-width: 350px) and (orientation: portrait) {
+@media (max-width: 350px) {
   .shop-offer {
-    grid-template-columns: 34px 1fr;
+    grid-template-columns: 24px minmax(0, 1fr);
   }
   .shop-offer > .guard-art {
-    width: 44px;
-    height: 52px;
+    width: 30px;
+    height: 43px;
   }
   .shop-offer > b {
-    font-size: 11px;
+    font-size: 10px;
   }
-  .offer-price small {
-    display: none;
-  }
-  .bench-level {
-    font-size: 9px;
-  }
-  .selection-bar p small {
-    display: none;
-  }
-  .merge-button svg {
+  .selection-bar .merge-button svg {
     display: none;
   }
 }
 @media (orientation: landscape) and (max-height: 600px) {
-  .control-deck.camp-deck {
-    padding: 7px;
-    gap: 7px;
+  .control-deck.camp-deck.compact-deck {
+    flex-direction: row;
+    align-items: end;
   }
-  .camp-heading {
-    margin-bottom: 4px;
-    min-height: 27px;
-  }
-  .camp-heading h2 {
-    font-size: 12px;
-  }
-  .camp-heading > span {
-    font-size: 9px;
-  }
-  .refresh-shop {
-    font-size: 10px;
-    min-height: 27px;
-    padding: 0 4px;
-    gap: 2px;
-  }
-  .refresh-shop > svg {
-    width: 11px;
-  }
-  .shop-offer,
-  .offer-sold {
-    min-height: 75px;
-    padding: 3px;
-    gap: 1px;
-  }
-  .shop-offer > .guard-art {
-    height: 43px;
-    width: 48px;
-  }
-  .shop-offer > b {
-    font-size: 10px;
-  }
-  .offer-price {
-    font-size: 10px;
-  }
-  .offer-price small {
-    font-size: 9px;
+  .guard-shop {
+    flex: 1;
   }
   .guard-hall {
-    padding-top: 3px;
-  }
-  .bench-slots {
-    grid-template-columns: repeat(6, minmax(0, 1fr));
-    gap: 3px;
-  }
-  .bench-slot {
-    height: 48px;
-    padding: 0;
-  }
-  .bench-slot > .guard-art {
-    height: 45px;
-    max-width: 120%;
-    margin-top: -3px;
-  }
-  .bench-level {
-    font-size: 9px;
-    padding: 0 2px;
-    line-height: 11px;
-  }
-  .selection-bar {
-    min-height: 50px;
-    gap: 4px;
-    padding-top: 5px;
-  }
-  .selection-bar > div {
-    min-width: 110px;
-  }
-  .selection-bar b {
-    font-size: 11px;
-  }
-  .selection-bar span {
-    display: none;
-  }
-  .merge-button,
-  .sell-unit {
-    font-size: 10px;
-    min-height: 28px;
-    padding: 0 4px;
-  }
-  .merge-button svg {
-    display: none;
-  }
-  .clear-choice {
-    min-height: 24px;
-    min-width: 20px;
-  }
-  .selection-bar p {
-    font-size: 10px;
-    gap: 4px;
-  }
-  .selection-bar p small {
-    display: none;
-  }
-  .camp-deck .hint {
-    font-size: 10px;
-    min-height: 25px;
+    flex: 1;
   }
 }
 @media (prefers-reduced-motion: reduce) {
