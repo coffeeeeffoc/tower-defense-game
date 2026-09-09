@@ -358,22 +358,16 @@ export default function Home() {
   function clickPlace(to: Location) {
     if (performance.now() < suppressClick.current) return;
     const target = unitAt(live.current, to);
-    if (selected !== null && locate(live.current, selected)) {
-      if (target?.id === selected) {
-        setSelected(null);
-        return;
-      }
-      transfer(selected, to);
-    } else if (target) {
+    if (target && target.id !== selected) {
       setSelected(target.id);
       setMessage(
         '已选中 ' +
           TYPES[target.kind].name +
           ' ' +
           target.level +
-          ' 级：点空位移动，点同种同级合成。',
+          ' 级：拖动换位，拖到同种同级守卫上合成。',
       );
-    } else setMessage('先在商店购买，或选中守卫厅中的援军。');
+    } else setSelected(null);
   }
   function dropAt(x: number, y: number, id: number): Location | null {
     const element = document
@@ -566,7 +560,7 @@ export default function Home() {
               className="world"
               style={{
                 width: fit.width * fit.scale,
-                height: fit.height * fit.scale,
+                height: fit.renderHeight * fit.scale,
               }}
             >
               <div
@@ -574,7 +568,7 @@ export default function Home() {
                 style={
                   {
                     width: fit.width,
-                    height: fit.height,
+                    height: fit.renderHeight,
                     transform: `scale(${fit.scale})`,
                     '--tap-size': `${Math.max(52, 40 / fit.scale)}px`,
                   } as CSSProperties
@@ -583,6 +577,8 @@ export default function Home() {
                 <div
                   className="board-scene"
                   style={{
+                    top: fit.topPadding,
+                    height: fit.height,
                     transform:
                       game.shake > 0
                         ? `translate(${Math.sin(game.time * 95) * 2.5}px,${Math.cos(game.time * 80) * 1.5}px)`
@@ -1166,7 +1162,7 @@ export default function Home() {
               <p>
                 <Combine size={17} />
                 同种同级 2 合 1 · 最高 Lv.{MAX_LEVEL}
-                <small>拖动，或先点守卫再点目标</small>
+                <small>点击查看 · 拖动换位或合成</small>
               </p>
             )}
           </div>
@@ -1260,7 +1256,7 @@ export default function Home() {
               守卫厅与战场之间可以双向拖动合成，也可以在各自区域内合成。不同种类、不同等级或顶级不会合成。
             </li>
             <li>
-              不方便拖动时，先点选守卫再点目标；“合成”按钮会寻找同种同级伙伴并合入当前守卫。
+              点击守卫查看详情，拖动才能换位；“合成”按钮会寻找同种同级伙伴并合入当前守卫。
             </li>
             <li>
               选中守卫可出售，返还其累计购买价格的 25%。取消拖动不会丢失守卫。

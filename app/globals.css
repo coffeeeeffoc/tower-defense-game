@@ -200,6 +200,7 @@ button svg {
   margin: auto;
 }
 .battlefield {
+  overflow: hidden;
   position: absolute;
   left: 0;
   top: 0;
@@ -213,7 +214,7 @@ button svg {
   position: absolute;
   inset: 0;
   border-radius: inherit;
-  overflow: hidden;
+  overflow: visible;
 }
 .map-svg,
 .projectiles {

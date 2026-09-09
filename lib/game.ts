@@ -111,10 +111,13 @@ export function boardFit(
 ) {
   const w = wide ? BOARD.height : BOARD.width,
     h = wide ? BOARD.width : BOARD.height;
+  const topPadding = 100;
   return {
     width: w,
     height: h,
-    scale: Math.max(0.1, Math.min(width / w, height / h)) * zoom,
+    topPadding,
+    renderHeight: h + topPadding,
+    scale: Math.max(0.1, Math.min(width / w, height / (h + topPadding))) * zoom,
   };
 }
 export type Enemy = {
