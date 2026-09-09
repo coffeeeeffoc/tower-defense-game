@@ -1,18 +1,21 @@
 {
-  "name": "moonwood-guardians",
+  "name": "@coffeeeeffoc/tower-defense-game",
   "version": "0.1.0",
   "private": true,
   "engines": {
     "node": ">=22.13.0"
   },
   "scripts": {
-    "dev": "vinext dev",
-    "build": "vinext build",
+    "dev": "vite --config vite.pages.config.ts --host 0.0.0.0 --port 5174",
+    "build": "vite build --config vite.pages.config.ts",
     "build:pages": "vite build --config vite.pages.config.ts",
     "start": "wrangler dev --config dist/server/wrangler.json",
     "lint": "oxlint",
     "format": "oxfmt",
-    "test": "node --experimental-strip-types lib/game.test.mjs && node --experimental-strip-types lib/interaction.test.mjs"
+    "test": "node --experimental-strip-types lib/game.test.mjs && node --experimental-strip-types lib/interaction.test.mjs",
+    "dev:server": "vinext dev",
+    "build:server": "vinext build",
+    "preview": "vite preview --config vite.pages.config.ts --host 0.0.0.0 --port 4174"
   },
   "dependencies": {
     "react": "19.2.6",
@@ -53,5 +56,6 @@
     "vite": "8.0.13",
     "wrangler": "4.92.0"
   },
-  "type": "module"
+  "type": "module",
+  "packageManager": "pnpm@8.14.1"
 }

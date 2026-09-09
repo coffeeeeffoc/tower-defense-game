@@ -2,14 +2,14 @@
 
 手机触控合成塔防小游戏：商店、6 格守卫厅、31 处战场阵地与 8 波挑战。保留三种守卫的战斗动作、月霜、暂停、两倍速与胜负重开。
 
-- `npm install`
-- `npm run dev`
-- `npm test`
-- `npm run build`
+- `pnpm install`
+- `pnpm dev`
+- `pnpm test`
+- `pnpm build`
 
 ## GitHub Pages
 
-执行 `npm run build:pages` 生成 `dist-pages/` 静态站点，发布该目录即可。静态入口位于 `static-site/`，避免被开发框架识别为 `pages/` 服务器路由；直接复用现有游戏组件，不依赖服务器。图片和脚本路径兼容 GitHub Pages 仓库子路径。原有 `npm run dev` 与 Sites 构建仍可使用。
+执行 `pnpm build:pages` 生成 `dist-pages/` 静态站点，发布该目录即可。静态入口位于 `static-site/`，避免被开发框架识别为 `pages/` 服务器路由；直接复用现有游戏组件，不依赖服务器。图片和脚本路径兼容 GitHub Pages 仓库子路径。原 Vinext 开发与服务端构建使用 `pnpm dev:server` / `pnpm build:server`。
 
 ## 招募与合成
 
@@ -37,7 +37,7 @@
 
 ## 数值预设与开发调参
 
-运行 `npm run dev`，点击右上角「开发调参」开关，拖动滑块即可调整。支持本浏览器自动保存、恢复预设、按当前配置重开，以及 JSON 文本导入导出。关闭开关只收起面板，恢复默认数值请点「恢复预设」。正式构建不包含调参入口，也不会读取开发模式保存的覆盖值。
+运行 `pnpm dev`，点击右上角「开发调参」开关，拖动滑块即可调整。支持本浏览器自动保存、恢复预设、按当前配置重开，以及 JSON 文本导入导出。关闭开关只收起面板，恢复默认数值请点「恢复预设」。正式构建不包含调参入口，也不会读取开发模式保存的覆盖值。
 
 配置集中在 `lib/balance.ts`：`DEFAULT_BALANCE` 是发布预设，`BALANCE_FIELDS` 定义中文名称、范围与步长，`parseBalance` 统一校验导入数据。无效、缺字段、多字段、非数值和越界配置整体拒绝，不会部分生效。每局持有独立配置；JSON 可用于开发与运营交接，目前不提供远程发布后台。后续后台可复用此结构和校验，并增加配置版本、权限与发布回滚。
 
@@ -57,6 +57,16 @@
 
 ## 验证
 
-`npm test` 覆盖购买扣费、满厅拒绝、刷新和过期货位、防重复购买、四个方向的合成、等级上限、错误移动的原子性、出售守恒，以及阵地合法性、多个尺寸的横竖屏坐标与等比适配、建造经济、蓄力及延迟命中、三种击退、弱点与首领抗性、冰缓速、炮弹范围伤害、暂停、死亡结算，以及完整八波胜利和失败。画面素材已检查透明度与帧范围；这些自动检查不代表真实设备触控及视觉验收。
+`pnpm test` 覆盖购买扣费、满厅拒绝、刷新和过期货位、防重复购买、四个方向的合成、等级上限、错误移动的原子性、出售守恒，以及阵地合法性、多个尺寸的横竖屏坐标与等比适配、建造经济、蓄力及延迟命中、三种击退、弱点与首领抗性、冰缓速、炮弹范围伤害、暂停、死亡结算，以及完整八波胜利和失败。画面素材已检查透明度与帧范围；这些自动检查不代表真实设备触控及视觉验收。
 
 WebMCP 在支持 `document.modelContext` 的浏览器注册 `read_defense` 与 `command_defense`，复用游戏规则。接口动作包括购买、刷新、移动/合成、出售与开波，不能绕过商店直接建造或花钱升级。自动测试覆盖战斗及暂停时的援军部署、已上阵守卫的换位/回收锁定、合成/出售限制，以及波次结算后的解锁。
+
+## pnpm 与 small-games 集成
+
+使用 Node.js 24 与 pnpm 8.14.1。独立克隆后执行 `pnpm install --frozen-lockfile`、`pnpm dev`、`pnpm test`、`pnpm build`。静态产物位于 `dist-pages/`，可部署到任意静态服务器。原 Vinext 服务端入口保留为 `pnpm dev:server` / `pnpm build:server`。
+
+本仓库同时作为 [small-games](https://github.com/coffeeeeffoc/small-games) 的 `games/tower-defense-game` Git submodule。在父仓库运行 `pnpm --filter @coffeeeeffoc/tower-defense-game dev` 可独立开发；父仓库的 Web Shell 构建会包含静态产物。内部技术栈及游戏逻辑保持独立。
+
+`pnpm-lock.yaml` 用于本仓库的独立安装；父仓库根锁文件用于 workspace 安装。依赖变更后需分别更新两份锁文件。先提交并推送本仓库，再在父仓库提交 submodule 的版本指针。
+
+推送到 `main` 自动执行测试、构建并部署到 [GitHub Pages](https://coffeeeeffoc.github.io/tower-defense-game/)，也支持 Actions 手动触发。其他分支和 PR 自动测试、构建，不覆盖线上站点。仓库 Pages 的 Source 使用 **GitHub Actions**。
