@@ -63,7 +63,7 @@ WebMCP 在支持 `document.modelContext` 的浏览器注册 `read_defense` 与 `
 
 ## pnpm 与 small-games 集成
 
-使用 Node.js 24 与 pnpm 8.14.1。独立克隆后执行 `pnpm install --frozen-lockfile`、`pnpm dev`、`pnpm test`、`pnpm build`。静态产物位于 `dist-pages/`，可部署到任意静态服务器。原 Vinext 服务端入口保留为 `pnpm dev:server` / `pnpm build:server`。
+使用 Node.js 24.21.0 与 pnpm 12.6.0。独立克隆后执行 `pnpm install --frozen-lockfile`、`pnpm dev`、`pnpm test`、`pnpm build`。静态产物位于 `dist-pages/`，可部署到任意静态服务器。原 Vinext 服务端入口保留为 `pnpm dev:server` / `pnpm build:server`。
 
 本仓库同时作为 [small-games](https://github.com/coffeeeeffoc/small-games) 的 `games/tower-defense-game` Git submodule。在父仓库运行 `pnpm --filter @coffeeeeffoc/tower-defense-game dev` 可独立开发；父仓库的 Web Shell 构建会包含静态产物。内部技术栈及游戏逻辑保持独立。
 

@@ -57,5 +57,5 @@
     "wrangler": "4.92.0"
   },
   "type": "module",
-  "packageManager": "pnpm@8.14.1"
+  "packageManager": "pnpm@12.6.0"
 }
