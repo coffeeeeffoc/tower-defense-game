@@ -1,4 +1,5 @@
 'use client';
+import '../static-site/dev-mode.js';
 import {
   useEffect,
   useCallback,
@@ -522,7 +523,7 @@ export default function Home() {
           </div>
         </div>
         <div className="header-right">
-          {process.env.NODE_ENV === 'development' && (
+          {typeof window !== 'undefined' && window.SmallGamesDev.isEnabled() && (
             <BalancePanel
               balance={game.balance}
               onApply={updateBalance}
